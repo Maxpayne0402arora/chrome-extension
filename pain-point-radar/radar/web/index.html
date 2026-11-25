@@ -1,0 +1,492 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Pain-Point Radar</title>
+<style>
+:root{--bg:#f7f7f5;--surface:#fff;--ink:#191919;--ink2:#666;--rule:#e4e4e0;--grid:#ececea;--blue:#257de0;--blue-soft:#cce3fd;
+--red:#ec4647;--mid:#d9d9d6;--chip:#f0f0ee;--focus:#257de0}
+@media (prefers-color-scheme:dark){:root:not([data-theme=light]){--bg:#111;--surface:#191919;--ink:#efefef;--ink2:#9c9c9c;
+--rule:#2e2e2e;--grid:#262626;--blue:#338ced;--blue-soft:#1b3a5e;--red:#eb6263;--mid:#383838;--chip:#242424}}
+:root[data-theme=dark]{--bg:#111;--surface:#191919;--ink:#efefef;--ink2:#9c9c9c;--rule:#2e2e2e;--grid:#262626;--blue:#338ced;
+--blue-soft:#1b3a5e;--red:#eb6263;--mid:#383838;--chip:#242424}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);font:15px/1.5 -apple-system,BlinkMacSystemFont,"Segoe UI",Inter,Roboto,sans-serif}
+a{color:var(--blue)}
+header{position:sticky;top:0;z-index:5;background:var(--surface);border-bottom:1px solid var(--rule)}
+.hwrap{max-width:1120px;margin:0 auto;padding:10px 16px;display:flex;gap:16px;align-items:center;flex-wrap:wrap}
+.logo{font-weight:700;letter-spacing:-.01em;text-decoration:none;color:var(--ink)}
+nav{display:flex;gap:4px;flex-wrap:wrap}
+nav a{padding:6px 10px;border-radius:6px;text-decoration:none;color:var(--ink2);font-size:14px}
+nav a.on{background:var(--chip);color:var(--ink);font-weight:600}
+main{max-width:1120px;margin:0 auto;padding:24px 16px 80px}
+h1{font-size:26px;margin:0 0 4px;letter-spacing:-.01em}h2{font-size:17px;margin:32px 0 4px}h3{font-size:15px;margin:0 0 6px}
+.sub{color:var(--ink2);font-size:14px;margin:0 0 10px}
+.card{background:var(--surface);border:1px solid var(--rule);border-radius:10px;padding:16px 18px;margin-top:10px}
+.row{display:flex;gap:10px;flex-wrap:wrap;align-items:center}
+input,select,textarea,button{font:inherit;color:inherit}
+input[type=text],input[type=number],select,textarea{background:var(--surface);border:1px solid var(--rule);border-radius:8px;padding:8px 10px;min-width:0}
+input:focus-visible,select:focus-visible,textarea:focus-visible,button:focus-visible,a:focus-visible{outline:2px solid var(--focus);outline-offset:1px}
+button{border:1px solid var(--rule);background:var(--surface);border-radius:8px;padding:8px 14px;cursor:pointer}
+button.primary{background:var(--ink);color:var(--surface);border-color:var(--ink);font-weight:600}
+button:disabled{opacity:.5;cursor:default}
+.big{font-size:18px;padding:12px 14px;flex:1;min-width:200px}
+.tiles{display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:10px;margin-top:14px}
+.tile{background:var(--surface);border:1px solid var(--rule);border-radius:10px;padding:12px 14px}
+.tile b{display:block;font-size:24px;font-variant-numeric:tabular-nums}.tile span{color:var(--ink2);font-size:13px}
+.tile small{display:block;color:var(--ink2);font-size:12px}
+table{width:100%;border-collapse:collapse;font-size:14px}
+th{text-align:left;color:var(--ink2);font-weight:500;font-size:12px;text-transform:uppercase;letter-spacing:.04em;padding:6px 8px;border-bottom:1px solid var(--rule)}
+td{padding:8px;border-bottom:1px solid var(--grid);vertical-align:middle;font-variant-numeric:tabular-nums}
+.num{text-align:right;white-space:nowrap}
+tr.click{cursor:pointer}tr.click:hover td{background:var(--chip)}
+.bar{height:10px;background:var(--grid);border-radius:4px;min-width:60px}
+.bar i{display:block;height:100%;background:var(--blue);border-radius:4px}
+.hlist .item{display:grid;grid-template-columns:minmax(120px,240px) 1fr 70px 80px;gap:10px;align-items:center;padding:7px 6px;border-radius:6px;cursor:pointer}
+.hlist .item:hover,.hlist .item.on{background:var(--chip)}
+.hlist .item .n{text-align:right;font-variant-numeric:tabular-nums;font-size:13px}
+.hlist .item .m{text-align:right;color:var(--ink2);font-size:13px}
+.split{display:flex;height:12px;gap:2px;border-radius:4px;overflow:hidden}.split i{display:block;height:100%}
+.legend{display:flex;gap:14px;font-size:13px;color:var(--ink2);margin:8px 0 0}
+.legend i{display:inline-block;width:10px;height:10px;border-radius:2px;margin-right:6px;vertical-align:-1px}
+.chips{display:flex;flex-wrap:wrap;gap:6px}
+.chip{background:var(--chip);border:1px solid var(--rule);border-radius:999px;padding:4px 11px;font-size:13px;cursor:pointer}
+.chip em{color:var(--ink2);font-style:normal;margin-left:6px}.chip.on{background:var(--ink);color:var(--surface);border-color:var(--ink)}
+.chip.on em{color:inherit;opacity:.75}
+.fb{border-top:1px solid var(--grid);padding:10px 0}.fb:first-child{border-top:0}
+.fb .meta,.meta{color:var(--ink2);font-size:12px}
+.tag{display:inline-block;font-size:11px;padding:1px 7px;border-radius:999px;border:1px solid var(--rule);margin-right:4px}
+.tag.negative{border-color:var(--red);color:var(--red)}.tag.positive{border-color:var(--blue);color:var(--blue)}
+mark{background:var(--blue-soft);color:inherit;border-radius:3px;padding:0 2px}
+.grid2{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.grid3{display:grid;grid-template-columns:repeat(3,1fr);gap:12px}
+@media(max-width:820px){.grid2,.grid3{grid-template-columns:1fr}.hide-sm{display:none}
+.hlist .item{grid-template-columns:1fr 70px;}.hlist .item .bar{grid-column:1/-1;order:3}.hlist .item .m{display:none}}
+.log{font:12px/1.5 ui-monospace,Menlo,monospace;background:var(--chip);border-radius:8px;padding:10px;max-height:240px;overflow:auto;white-space:pre-wrap}
+.ins li{margin:6px 0}
+.pp{border-top:1px solid var(--grid);padding:10px 0}.pp:first-child{border-top:0}
+blockquote{margin:6px 0;padding:6px 10px;border-left:3px solid var(--rule);background:var(--chip);border-radius:0 6px 6px 0;font-size:14px}
+.tip{position:fixed;pointer-events:none;background:var(--ink);color:var(--surface);padding:6px 9px;border-radius:6px;font-size:12px;display:none;z-index:20;max-width:260px}
+svg text{fill:var(--ink2);font-size:11px}
+.muted{color:var(--ink2)}.err{color:var(--red)}
+details summary{cursor:pointer;color:var(--ink2);font-size:14px}
+label.ck{display:inline-flex;gap:6px;align-items:center;font-size:14px;margin-right:12px}
+.field{display:flex;flex-direction:column;gap:4px;font-size:13px;color:var(--ink2)}
+.field input,.field select,.field textarea{color:var(--ink);font-size:14px}
+.topicbar{display:flex;gap:6px;flex-wrap:wrap}
+.empty{padding:30px;text-align:center;color:var(--ink2)}
+.scroll{overflow-x:auto}
+</style>
+</head>
+<body>
+<header><div class="hwrap"><a class="logo" href="#/">◎ Pain-Point Radar</a><nav id="nav"></nav></div></header>
+<main id="app"></main>
+<div class="tip" id="tip"></div>
+<script>
+const $ = (s, el = document) => el.querySelector(s);
+const esc = s => String(s ?? "").replace(/[&<>"']/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+const app = $("#app");
+let CFG = null;
+const state = {}; // per-view state
+const api = async (path, body) => {
+  const r = await fetch(path, body === undefined ? {} : {method: "POST", headers: {"Content-Type": "application/json"}, body: JSON.stringify(body)});
+  const j = await r.json().catch(() => ({error: "Bad response"}));
+  if (!r.ok) throw new Error(j.error || r.statusText);
+  return j;
+};
+const pct = v => v == null ? "–" : `${v}%`;
+const stars = v => v == null ? "–" : `${v}★`;
+const signed = v => v == null ? "–" : (v > 0 ? "+" : "") + v;
+const mom = m => m == null ? "" : m >= 1.25 ? `↑ ${m}×` : m <= 0.8 ? `↓ ${m}×` : `${m}×`;
+
+// ---------- tooltips
+document.addEventListener("mousemove", e => {
+  const t = e.target.closest("[data-tip]"), tip = $("#tip");
+  if (!t) { tip.style.display = "none"; return; }
+  tip.textContent = t.dataset.tip; tip.style.display = "block";
+  tip.style.left = Math.min(e.clientX + 12, innerWidth - 270) + "px"; tip.style.top = (e.clientY + 14) + "px";
+});
+
+// ---------- routing
+function nav(slug, on) {
+  const links = [["#/", "Brands", "home"]];
+  if (slug) links.push([`#/b/${slug}`, "Overview", "overview"], [`#/b/${slug}/topic`, "Topic deep dive", "topic"],
+                       [`#/b/${slug}/explore`, "All feedback", "explore"]);
+  links.push(["#/compare", "Compare", "compare"]);
+  $("#nav").innerHTML = links.map(([h, t, k]) => `<a href="${h}" class="${k === on ? "on" : ""}">${t}</a>`).join("");
+}
+async function route() {
+  if (!CFG) CFG = await api("/api/config");
+  const parts = location.hash.replace(/^#\/?/, "").split("/").map(decodeURIComponent).filter(Boolean);
+  window.scrollTo(0, 0);
+  try {
+    if (parts[0] === "b" && parts[1]) {
+      const slug = parts[1];
+      if (parts[2] === "topic") return topicView(slug, parts[3] || null);
+      if (parts[2] === "explore") return exploreView(slug);
+      return overview(slug);
+    }
+    if (parts[0] === "compare") return compareView();
+    return home();
+  } catch (e) { app.innerHTML = `<div class="card err">${esc(e.message)}</div>`; }
+}
+addEventListener("hashchange", route);
+
+// ---------- HOME
+async function home() {
+  nav(null, "home");
+  const brands = await api("/api/brands");
+  const presetNames = Object.keys(CFG.presets);
+  app.innerHTML = `
+  <h1>Which brand should we listen to?</h1>
+  <p class="sub">Type any company. We pull public reviews and discussions, score sentiment, and rank the areas users complain about most.</p>
+  <div class="card">
+    <form id="f">
+      <div class="row"><input class="big" type="text" name="brand" list="presets" placeholder="e.g. Nykaa, Flipkart, Swiggy, Google…" autocomplete="off" required>
+      <button class="primary" type="submit" style="padding:12px 20px">Analyse</button></div>
+      <datalist id="presets">${presetNames.map(n => `<option value="${esc(n)}">`).join("")}</datalist>
+      <div class="chips" style="margin-top:10px">${presetNames.map(n => `<span class="chip" data-preset="${esc(n)}">${esc(n)}</span>`).join("")}</div>
+      <details style="margin-top:14px"><summary>Advanced options (auto-filled for known brands)</summary>
+        <div style="margin-top:10px">
+          <div class="field">Sources</div>
+          <div style="margin:4px 0 10px">${[["play","Google Play"],["appstore","App Store"],["reddit","Reddit"],["hn","Hacker News"]]
+            .map(([k,l]) => `<label class="ck"><input type="checkbox" name="src" value="${k}" checked>${l}</label>`).join("")}</div>
+          <div class="field">Industry packs (add sector-specific topics)</div>
+          <div style="margin:4px 0 10px">${CFG.sectors.map(s => `<label class="ck"><input type="checkbox" name="sector" value="${s}">${s.replace("_"," ")}</label>`).join("")}</div>
+          <div class="grid3">
+            <label class="field">Competitors (comma separated)<input type="text" name="competitors"></label>
+            <label class="field">Play Store package (optional)<input type="text" name="play_id" placeholder="com.fsn.nykaa"></label>
+            <label class="field">App Store ID (optional)<input type="text" name="appstore_id" placeholder="numeric id"></label>
+            <label class="field">Forum search term (optional)<input type="text" name="query"></label>
+            <label class="field">Subreddits (optional)<input type="text" name="subreddits" placeholder="india,IndianSkincareAddicts"></label>
+            <label class="field">Store country<input type="text" name="country" value="${CFG.defaults.country}"></label>
+            <label class="field">Max Play Store reviews<input type="number" name="max_reviews" value="${CFG.defaults.max_reviews}" min="100" step="100"></label>
+            <label class="field">Your own CSVs (Trustpilot, X, tickets…)<input type="file" name="csv" accept=".csv" multiple></label>
+          </div>
+        </div>
+      </details>
+    </form>
+    <div id="job" style="display:none;margin-top:14px"><div class="row"><b id="jobstatus">Starting…</b></div><div class="log" id="joblog" style="margin-top:8px"></div></div>
+  </div>
+  <h2>Already analysed</h2>
+  ${brands.length ? `<div class="grid3">${brands.map(b => `
+    <a class="card" href="#/b/${b.slug}" style="text-decoration:none;color:inherit;display:block">
+      <h3>${esc(b.brand)}</h3>
+      <div class="meta">${b.n.toLocaleString()} items · ${stars(b.avg_rating)} · ${pct(b.pct_negative)} negative</div>
+      <div style="margin-top:6px;font-size:14px">Top pain: <b>${esc(b.top_area || "–")}</b></div>
+      <div class="meta">${esc((b.analysed_at || "").replace("T", " "))}</div></a>`).join("")}</div>`
+    : `<div class="card empty">Nothing yet. Analyse a brand above.</div>`}`;
+
+  const f = $("#f");
+  const fill = name => {
+    const p = CFG.presets[Object.keys(CFG.presets).find(k => k.toLowerCase() === name.trim().toLowerCase())] || {};
+    f.brand.value = name;
+    f.competitors.value = p.competitors || ""; f.play_id.value = p.play_id || ""; f.query.value = p.query || "";
+    const srcs = (p.sources || CFG.defaults.sources).split(",");
+    f.querySelectorAll("[name=src]").forEach(c => c.checked = srcs.includes(c.value));
+    const secs = (p.sector || "").split(",");
+    f.querySelectorAll("[name=sector]").forEach(c => c.checked = secs.includes(c.value));
+  };
+  app.querySelectorAll("[data-preset]").forEach(c => c.onclick = () => fill(c.dataset.preset));
+  f.brand.addEventListener("change", () => { if (CFG.presets[f.brand.value]) fill(f.brand.value); });
+  f.onsubmit = async e => {
+    e.preventDefault();
+    const files = await Promise.all([...f.csv.files].map(async x => ({name: x.name, content: await x.text()})));
+    const body = {brand: f.brand.value, competitors: f.competitors.value, play_id: f.play_id.value, appstore_id: f.appstore_id.value,
+      query: f.query.value, subreddits: f.subreddits.value, country: f.country.value, max_reviews: +f.max_reviews.value,
+      sources: [...f.querySelectorAll("[name=src]:checked")].map(c => c.value).join(","),
+      sector: [...f.querySelectorAll("[name=sector]:checked")].map(c => c.value).join(","), csv_files: files};
+    f.querySelector("button[type=submit]").disabled = true;
+    $("#job").style.display = "block";
+    try {
+      const {job} = await api("/api/analyze", body);
+      poll(job);
+    } catch (err) { $("#jobstatus").innerHTML = `<span class="err">${esc(err.message)}</span>`; f.querySelector("button[type=submit]").disabled = false; }
+  };
+}
+async function poll(id) {
+  const j = await api(`/api/jobs/${id}`);
+  $("#jobstatus").textContent = {queued: "Queued…", collecting: "Collecting feedback… (a 2,000-review run takes a couple of minutes)",
+    analysing: "Analysing…", done: "Done!", error: "Something went wrong"}[j.status] || j.status;
+  $("#joblog").textContent = j.log.join("\n"); $("#joblog").scrollTop = 1e9;
+  if (j.status === "done") return setTimeout(() => location.hash = `#/b/${j.slug}`, 600);
+  if (j.status === "error") { $("#jobstatus").classList.add("err"); $("#f button[type=submit]").disabled = false; return; }
+  setTimeout(() => poll(id), 1200);
+}
+
+// ---------- shared bits
+function lineChart(points, key, label, fmt = v => v + "%") {
+  if (!points || points.length < 2) return `<p class="meta">Not enough dated feedback for a trend.</p>`;
+  const W = 560, H = 180, L = 36, R = 8, T = 10, B = 24;
+  const vals = points.map(p => p[key]);
+  const ymax = Math.max(10, Math.ceil(Math.max(...vals) * 1.15 / 10) * 10);
+  const x = i => L + i * (W - L - R) / (points.length - 1), y = v => T + (H - T - B) * (1 - v / ymax);
+  const ticks = [0, ymax / 2, ymax].map(v => `<line x1="${L}" x2="${W - R}" y1="${y(v)}" y2="${y(v)}" stroke="var(--grid)"/><text x="${L - 5}" y="${y(v) + 4}" text-anchor="end">${fmt(Math.round(v))}</text>`).join("");
+  const step = Math.max(1, Math.ceil(points.length / 5)), last = points.length - 1;
+  const xl = points.map((p, i) => ((i % step === 0 && last - i >= step / 2) || i === last) ?
+    `<text x="${x(i)}" y="${H - 6}" text-anchor="${i === 0 ? "start" : i === points.length - 1 ? "end" : "middle"}">${p.month}</text>` : "").join("");
+  const dots = points.map((p, i) => `<circle cx="${x(i)}" cy="${y(p[key])}" r="3.5" fill="var(--blue)" stroke="var(--surface)" stroke-width="2"/>
+    <rect x="${x(i) - 12}" y="0" width="24" height="${H}" fill="transparent" data-tip="${p.month}: ${label} ${fmt(p[key])} (n=${p.n})"/>`).join("");
+  return `<svg viewBox="0 0 ${W} ${H}" width="100%" role="img" aria-label="${esc(label)} by month">${ticks}
+    <polyline points="${points.map((p, i) => `${x(i)},${y(p[key])}`).join(" ")}" fill="none" stroke="var(--blue)" stroke-width="2" stroke-linejoin="round"/>${dots}${xl}</svg>`;
+}
+function hl(text, terms) {
+  let h = esc(text);
+  for (const t of terms.filter(Boolean)) {
+    const words = t.split(/\s+/).map(w => w.replace(/[.*+?^${}()|[\]\\]/g, "\\$&"));
+    h = h.replace(new RegExp(`\\b(${words.join("\\W+")}\\w*)`, "gi"), "<mark>$1</mark>");
+  }
+  return h;
+}
+function fbItem(i, terms = []) {
+  const bits = [i.source, i.rating ? i.rating + "★" : "", i.likes ? i.likes + " found helpful" : "", i.date || "", i.version ? "v" + i.version : ""].filter(Boolean);
+  return `<div class="fb"><div>${hl(i.text.length > 700 ? i.text.slice(0, 700) + "…" : i.text, terms)}</div>
+    <div class="meta" style="margin-top:4px"><span class="tag ${i.label}">${i.label}</span>${esc(bits.join(" · "))}
+    ${i.url ? ` · <a href="${esc(i.url)}" target="_blank" rel="noopener">source</a>` : ""}
+    ${i.areas && i.areas.length ? ` · ${i.areas.map(esc).join(", ")}` : ""}</div></div>`;
+}
+function claudeBlock(r) {
+  return `<p>${esc(r.summary)}</p>` + r.pain_points.map(p => `<div class="pp"><b>${esc(p.problem)}</b>
+    <div class="meta">Severity ${p.severity}/5 · ~${p.share_of_quotes}% of comments · Who: ${esc(p.who)} · When: ${esc(p.trigger)}</div>
+    <div style="font-size:14px">Likely cause (hypothesis): ${esc(p.root_cause_hypothesis)}</div>
+    <div style="font-size:14px;margin-top:4px"><b>${esc(p.opportunity)}</b></div>
+    ${(p.evidence || []).slice(0, 2).map(q => `<blockquote>${esc(q)}</blockquote>`).join("")}</div>`).join("");
+}
+
+// ---------- OVERVIEW
+async function overview(slug) {
+  nav(slug, "overview");
+  app.innerHTML = `<div class="empty">Loading…</div>`;
+  const {summary: s, meta} = await api(`/api/brand/${slug}/summary`);
+  const neutral = Math.max(0, 100 - s.pct_negative - s.pct_positive).toFixed(1);
+  app.innerHTML = `
+  <div class="row" style="justify-content:space-between"><div><h1>${esc(s.company)}</h1>
+  <p class="sub">${s.n.toLocaleString()} public reviews & posts · ${esc(s.date_range[0] || "?")} to ${esc(s.date_range[1] || "?")} · analysed ${esc((meta.analysed_at || s.generated).replace("T", " "))}</p></div>
+  <div class="row"><a href="/report/${slug}" target="_blank"><button>Printable report</button></a></div></div>
+  <div class="tiles">
+    <div class="tile"><b>${s.n.toLocaleString()}</b><span>pieces of feedback</span></div>
+    <div class="tile"><b>${stars(s.avg_rating)}</b><span>average rating</span></div>
+    <div class="tile"><b>${pct(s.pct_negative)}</b><span>negative</span></div>
+    <div class="tile"><b>${signed(s.net_sentiment)}</b><span>net sentiment (pos − neg)</span></div>
+    <div class="tile"><b>${s.churn_signals.toLocaleString()}</b><span>leaving / switching mentions</span></div>
+  </div>
+  <div class="card"><div class="split" data-tip="${s.pct_negative}% negative · ${neutral}% neutral · ${s.pct_positive}% positive">
+    <i style="width:${s.pct_negative}%;background:var(--red)"></i><i style="width:${neutral}%;background:var(--mid)"></i><i style="width:${s.pct_positive}%;background:var(--blue)"></i></div>
+    <div class="legend"><span><i style="background:var(--red)"></i>Negative</span><span><i style="background:var(--mid)"></i>Neutral</span><span><i style="background:var(--blue)"></i>Positive</span></div></div>
+
+  <h2>Key findings</h2>
+  <div class="card"><ul class="ins" style="margin:0;padding-left:20px">${(s.insights || []).map(x => `<li>${x}</li>`).join("") || "<li class='muted'>Not enough data for findings.</li>"}</ul></div>
+
+  <h2>Where to go after</h2>
+  <p class="sub">Opportunity = share of complaints × severity × momentum × reach (top = 100). <b>Click a row to deep-dive into that topic.</b></p>
+  <div class="card scroll"><table><thead><tr><th>Topic</th><th colspan="2">Opportunity</th><th class="num">% of complaints</th>
+    <th class="num hide-sm">Negative</th><th class="num hide-sm">Momentum</th><th class="num hide-sm">Rating drag</th></tr></thead><tbody>
+    ${s.areas.map(a => `<tr class="click" data-topic="${esc(a.area)}"><td><b>${esc(a.area)}</b></td>
+      <td style="width:24%"><div class="bar" data-tip="Opportunity ${a.opportunity}/100"><i style="width:${a.opportunity}%"></i></div></td><td class="num">${a.opportunity}</td>
+      <td class="num">${a.pct_of_all_complaints}%</td><td class="num hide-sm">${a.negative_rate}%</td>
+      <td class="num hide-sm">${mom(a.momentum)}</td><td class="num hide-sm">${a.rating_drag == null ? "–" : signed(a.rating_drag) + "★"}</td></tr>`).join("")}
+  </tbody></table></div>
+
+  <div class="grid2">
+    <div><h2>Negative share by month</h2><div class="card">${lineChart(s.timeline, "neg_rate", "% negative")}</div></div>
+    <div><h2>Emerging themes</h2><p class="sub">Phrases far more common in complaints than praise. Click to read them.</p>
+      <div class="card chips">${s.emerging.map(p => `<span class="chip" data-phrase="${esc(p.phrase)}">${esc(p.phrase)}<em>${p.neg_count}</em></span>`).join("") || "<span class='meta'>Not enough data.</span>"}</div></div>
+  </div>
+  <div class="grid2">
+    <div><h2>Unmet needs</h2><div class="card">${s.feature_requests.slice(0, 5).map(q => fbItem({...q, label: "request"})).join("") || "<span class='meta'>None detected.</span>"}</div></div>
+    <div><h2>Why people leave</h2><div class="card">${s.churn_quotes.slice(0, 5).map(q => fbItem({...q, label: "negative"})).join("") || "<span class='meta'>None detected.</span>"}</div></div>
+  </div>
+  ${s.competitors.length ? `<h2>Competitors mentioned</h2><div class="card scroll"><table><thead><tr><th>Competitor</th><th class="num">Mentions</th><th class="num">With switching language</th></tr></thead><tbody>
+    ${s.competitors.map(c => `<tr class="click" data-phrase="${esc(c.competitor)}"><td>${esc(c.competitor)}</td><td class="num">${c.mentions}</td><td class="num">${c.in_churn_context}</td></tr>`).join("")}</tbody></table></div>` : ""}
+  <h2>By source</h2><div class="card scroll"><table><thead><tr><th>Source</th><th class="num">Items</th><th class="num">Negative</th><th class="num">Avg ★</th></tr></thead><tbody>
+    ${s.sources.map(x => `<tr><td>${esc(x.source)}</td><td class="num">${x.n.toLocaleString()}</td><td class="num">${x.neg_rate}%</td><td class="num">${stars(x.avg_rating)}</td></tr>`).join("")}</tbody></table></div>`;
+  app.querySelectorAll("[data-topic]").forEach(r => r.onclick = () => location.hash = `#/b/${slug}/topic/${encodeURIComponent(r.dataset.topic)}`);
+  app.querySelectorAll("[data-phrase]").forEach(r => r.onclick = () => { state.explorePhrase = r.dataset.phrase; location.hash = `#/b/${slug}/explore`; });
+}
+
+// ---------- TOPIC DEEP DIVE
+async function topicView(slug, topicName) {
+  nav(slug, "topic");
+  const {summary: s, sources} = await api(`/api/brand/${slug}/summary`);
+  const saved = CFG.saved_topics || [];
+  const custom = saved.find(t => t.name === topicName);
+  const areaNames = s.areas.map(a => a.area);
+  if (!topicName) topicName = areaNames[0];
+  const def = custom ? {topic: custom.name, keywords: custom.keywords, subthemes: custom.subthemes} : {topic: topicName};
+  const T = state.topic = {slug, def, filter: {}, sources, company: s.company};
+
+  app.innerHTML = `
+  <h1>Topic deep dive</h1>
+  <p class="sub">Pick a topic to see what ${esc(s.company)} users actually say about it, or define your own with keywords.</p>
+  <div class="card">
+    <div class="topicbar">${areaNames.map(a => `<span class="chip ${a === topicName && !custom ? "on" : ""}" data-t="${esc(a)}">${esc(a)}</span>`).join("")}</div>
+    ${saved.length ? `<div class="meta" style="margin:10px 0 4px">Your topics</div><div class="topicbar">${saved.map(t => `<span class="chip ${custom && t.name === custom.name ? "on" : ""}" data-t="${esc(t.name)}">★ ${esc(t.name)}</span>`).join("")}</div>` : ""}
+    <details style="margin-top:12px" ${custom ? "open" : ""}><summary>+ Define your own topic</summary>
+      <form id="ct" style="margin-top:10px" class="grid2">
+        <label class="field">Topic name<input type="text" name="name" placeholder="e.g. Customer support (my definition)" value="${esc(custom?.name || "")}" required></label>
+        <label class="field">Keywords that mean this topic (comma separated)<input type="text" name="keywords" placeholder="support, customer care, chat, agent, helpline" value="${esc((custom?.keywords || []).join(", "))}" required></label>
+        <label class="field" style="grid-column:1/-1">Optional sub-themes, one per line: <i>Name: keyword, keyword</i>
+          <textarea name="subthemes" rows="3" placeholder="Callback: call back, callback&#10;Chatbot: bot, chatbot, automated">${esc(Object.entries(custom?.subthemes || {}).map(([k, v]) => `${k}: ${v.join(", ")}`).join("\n"))}</textarea></label>
+        <div class="row"><button class="primary" type="submit">Save & analyse</button>${custom ? `<button type="button" id="del">Delete topic</button>` : ""}
+        <span class="meta">Saved topics are available for every brand.</span></div>
+      </form></details>
+  </div>
+  <div id="td"><div class="empty">Loading…</div></div>`;
+
+  app.querySelectorAll("[data-t]").forEach(c => c.onclick = () => location.hash = `#/b/${slug}/topic/${encodeURIComponent(c.dataset.t)}`);
+  $("#ct").onsubmit = async e => {
+    e.preventDefault(); const f = e.target;
+    const subthemes = {};
+    f.subthemes.value.split("\n").forEach(l => { const [k, v] = l.split(":"); if (k && v) subthemes[k.trim()] = v.split(",").map(x => x.trim()).filter(Boolean); });
+    CFG.saved_topics = await api("/api/topics", {name: f.name.value.trim(), keywords: f.keywords.value.split(",").map(x => x.trim()).filter(Boolean), subthemes});
+    location.hash = `#/b/${slug}/topic/${encodeURIComponent(f.name.value.trim())}`; route();
+  };
+  if ($("#del")) $("#del").onclick = async () => { CFG.saved_topics = await api("/api/topics", {name: custom.name, delete: true}); location.hash = `#/b/${slug}/topic`; };
+  renderTopic();
+}
+
+async function renderTopic() {
+  const T = state.topic, d = await api(`/api/brand/${T.slug}/topic`, T.def);
+  const td = $("#td");
+  if (!d.mentions) { td.innerHTML = `<div class="card empty">No feedback mentions this topic. Try broader keywords.</div>`; return; }
+  const maxSub = Math.max(...(d.subthemes || []).map(x => x.pct_of_topic), 1);
+  const maxPh = Math.max(...(d.phrases || []).map(x => x.mentions), 1);
+  td.innerHTML = `
+  <h2>${esc(d.topic)}</h2>
+  ${d.custom ? `<p class="sub">Matches: ${d.keywords.map(esc).join(", ")}</p>` : ""}
+  <div class="tiles">
+    <div class="tile"><b>${d.mentions.toLocaleString()}</b><span>mentions</span><small>${d.pct_of_all_feedback}% of all feedback</small></div>
+    <div class="tile"><b>${pct(d.pct_of_all_complaints)}</b><span>of all complaints</span></div>
+    <div class="tile"><b>${pct(d.pct_negative)}</b><span>negative</span><small>brand overall: ${d.brand_pct_negative}%</small></div>
+    <div class="tile"><b>${d.rating_drag == null ? "–" : signed(d.rating_drag) + "★"}</b><span>rating vs brand avg</span><small>${stars(d.avg_rating)} when mentioned</small></div>
+    <div class="tile"><b>${mom(d.momentum)}</b><span>momentum (last 30 days)</span></div>
+    <div class="tile"><b>${d.churn_mentions}</b><span>complaints with leaving language</span></div>
+  </div>
+
+  <h2>What users talk about within ${esc(d.topic)}</h2>
+  <p class="sub">Each piece of feedback can fall into several sub-themes. Click one to read the feedback below.${d.unclassified_pct != null ? ` ${d.unclassified_pct}% fits none of these. Check the phrases on the right.` : ""}</p>
+  <div class="grid2">
+    <div class="card"><h3>Sub-themes</h3>
+      ${(d.subthemes || []).length ? `<div class="hlist">${d.subthemes.map(x => `
+        <div class="item ${T.filter.subtheme === x.name ? "on" : ""}" data-sub="${esc(x.name)}" data-tip="${x.mentions} mentions · ${x.pct_negative}% negative · ${stars(x.avg_rating)} · momentum ${x.momentum}×">
+          <span>${esc(x.name)}</span><div class="bar"><i style="width:${100 * x.pct_of_topic / maxSub}%"></i></div>
+          <span class="n">${x.pct_of_topic}%</span><span class="m">${x.pct_negative}% neg</span></div>`).join("")}</div>`
+        : `<p class="meta">No predefined sub-themes for this topic. Use the phrases on the right, or define sub-themes in a custom topic.</p>`}
+    </div>
+    <div class="card"><h3>Most talked-about phrases</h3>
+      <div class="hlist">${(d.phrases || []).slice(0, 14).map(x => `
+        <div class="item ${T.filter.phrase === x.phrase ? "on" : ""}" data-ph="${esc(x.phrase)}" data-tip="${x.mentions} people · ${x.pct_negative}% negative">
+          <span>“${esc(x.phrase)}”</span><div class="bar"><i style="width:${100 * x.mentions / maxPh}%"></i></div>
+          <span class="n">${x.mentions}</span><span class="m">${x.pct_negative}% neg</span></div>`).join("") || "<p class='meta'>Not enough text.</p>"}</div>
+    </div>
+  </div>
+
+  <div class="grid2">
+    <div><h2>What makes it bad</h2><p class="sub">Words far more common in negative than positive feedback on this topic.</p>
+      <div class="card chips">${d.drivers.pain.map(x => `<span class="chip" data-ph="${esc(x.phrase)}">${esc(x.phrase)}<em>${x.neg}</em></span>`).join("") || "<span class='meta'>Not enough contrast.</span>"}</div></div>
+    <div><h2>What users like</h2><p class="sub">Words far more common in positive feedback. This is what good looks like.</p>
+      <div class="card chips">${d.drivers.delight.map(x => `<span class="chip" data-ph="${esc(x.phrase)}">${esc(x.phrase)}<em>${x.pos}</em></span>`).join("") || "<span class='meta'>Not enough positive feedback.</span>"}</div></div>
+  </div>
+
+  <div class="grid2">
+    <div><h2>Mentioned alongside</h2><p class="sub">Other topics in the same feedback. Often the root cause.</p>
+      <div class="card hlist">${(d.co_mentions || []).map(x => `<div class="item" data-goto="${esc(x.area)}"><span>${esc(x.area)}</span>
+        <div class="bar"><i style="width:${x.pct_of_topic}%"></i></div><span class="n">${x.pct_of_topic}%</span><span class="m"></span></div>`).join("") || "<p class='meta'>None.</p>"}</div></div>
+    <div><h2>Trend</h2><p class="sub">Share of all feedback that mentions this topic, by month.</p>
+      <div class="card">${lineChart(d.timeline, "share", "share of feedback")}</div></div>
+  </div>
+
+  <h2>Read the feedback</h2>
+  <div class="card">
+    <div class="row" id="ffilters"></div>
+    ${CFG.claude ? `<div class="row" style="margin-top:10px"><button id="ask">✦ Ask Claude to find the pain points in this selection</button><span class="meta">Sends up to 60 negative comments to Claude.</span></div><div id="claude"></div>` : ""}
+    <div id="fblist" style="margin-top:8px"></div>
+    <div class="row" style="justify-content:center;margin-top:8px"><button id="more" style="display:none">Load more</button></div>
+  </div>`;
+  td.querySelectorAll("[data-sub]").forEach(el => el.onclick = () => { T.filter = {subtheme: T.filter.subtheme === el.dataset.sub ? null : el.dataset.sub}; renderTopic().then(() => $("#ffilters").scrollIntoView({behavior: "smooth", block: "center"})); });
+  td.querySelectorAll("[data-ph]").forEach(el => el.onclick = () => { T.filter = {phrase: T.filter.phrase === el.dataset.ph ? null : el.dataset.ph}; renderTopic().then(() => $("#ffilters").scrollIntoView({behavior: "smooth", block: "center"})); });
+  td.querySelectorAll("[data-goto]").forEach(el => el.onclick = () => location.hash = `#/b/${T.slug}/topic/${encodeURIComponent(el.dataset.goto)}`);
+  if ($("#ask")) $("#ask").onclick = async () => {
+    $("#ask").disabled = true; $("#claude").innerHTML = `<p class="meta">Claude is reading the comments… (about 20–60 seconds)</p>`;
+    try { $("#claude").innerHTML = `<div class="card">${claudeBlock(await api(`/api/brand/${T.slug}/topic/claude`, {...T.def, ...T.filter}))}</div>`; }
+    catch (e) { $("#claude").innerHTML = `<p class="err">${esc(e.message)}</p>`; }
+    $("#ask").disabled = false;
+  };
+  feedbackPanel(T.slug, {...T.def, ...T.filter}, T.sources, () => { T.filter = {}; renderTopic(); });
+}
+
+// ---------- feedback list (shared by topic & explore)
+function feedbackPanel(slug, base, sources, clear) {
+  const F = {sentiment: "", source: "", sort: "helpful", q: "", offset: 0};
+  const active = [base.subtheme && `Sub-theme: ${base.subtheme}`, base.phrase && `Phrase: “${base.phrase}”`].filter(Boolean);
+  $("#ffilters").innerHTML = `
+    ${active.map(a => `<span class="chip on" id="clr" data-tip="Clear filter">${esc(a)} ✕</span>`).join("")}
+    <input type="text" id="fq" placeholder="Search within…" style="flex:1;min-width:160px">
+    <select id="fs"><option value="">All sentiment</option><option value="negative">Negative</option><option value="neutral">Neutral</option><option value="positive">Positive</option></select>
+    <select id="fsrc"><option value="">All sources</option>${sources.map(s => `<option>${esc(s)}</option>`).join("")}</select>
+    <select id="fsort"><option value="helpful">Most agreed with</option><option value="recent">Most recent</option><option value="negative">Most negative</option><option value="positive">Most positive</option></select>
+    <span class="meta" id="fcount"></span>`;
+  if ($("#clr")) $("#clr").onclick = clear;
+  const load = async (append) => {
+    if (!append) F.offset = 0;
+    const r = await api(`/api/brand/${slug}/feedback`, {...base, ...F, limit: 25});
+    $("#fcount").textContent = `${r.total.toLocaleString()} matching`;
+    const html = r.items.map(i => fbItem(i, [base.phrase, F.q])).join("");
+    $("#fblist").innerHTML = append ? $("#fblist").innerHTML + html : (html || `<div class="empty">No matching feedback.</div>`);
+    F.offset += r.items.length;
+    $("#more").style.display = F.offset < r.total ? "" : "none";
+  };
+  let t; $("#fq").oninput = e => { clearTimeout(t); t = setTimeout(() => { F.q = e.target.value.trim(); load(); }, 300); };
+  $("#fs").onchange = e => { F.sentiment = e.target.value; load(); };
+  $("#fsrc").onchange = e => { F.source = e.target.value; load(); };
+  $("#fsort").onchange = e => { F.sort = e.target.value; load(); };
+  $("#more").onclick = () => load(true);
+  load();
+}
+
+// ---------- EXPLORE
+async function exploreView(slug) {
+  nav(slug, "explore");
+  const {summary: s, sources} = await api(`/api/brand/${slug}/summary`);
+  const phrase = state.explorePhrase; state.explorePhrase = null;
+  app.innerHTML = `<h1>All feedback: ${esc(s.company)}</h1><p class="sub">Search and filter everything that was collected.</p>
+    <div class="card"><div class="row" style="margin-bottom:8px"><select id="ftopic"><option value="">All topics</option>${s.areas.map(a => `<option>${esc(a.area)}</option>`).join("")}</select></div>
+    <div class="row" id="ffilters"></div><div id="fblist" style="margin-top:8px"></div>
+    <div class="row" style="justify-content:center;margin-top:8px"><button id="more" style="display:none">Load more</button></div></div>`;
+  const go = (topic, ph) => feedbackPanel(slug, {topic: topic || null, phrase: ph || null}, sources, () => go($("#ftopic").value, null));
+  $("#ftopic").onchange = e => go(e.target.value, null);
+  go(null, phrase);
+}
+
+// ---------- COMPARE
+async function compareView() {
+  nav(null, "compare");
+  const brands = await api("/api/brands");
+  app.innerHTML = `<h1>Compare brands</h1><p class="sub">Where is each brand weak? Values = share of that brand's complaints that mention the topic.</p>
+    <div class="card">${brands.length < 2 ? "<span class='meta'>Analyse at least two brands first.</span>" :
+      brands.map(b => `<label class="ck"><input type="checkbox" value="${b.slug}" checked>${esc(b.brand)}</label>`).join("")}</div><div id="cmp"></div>`;
+  const draw = async () => {
+    const slugs = [...app.querySelectorAll("input:checked")].map(c => c.value);
+    if (slugs.length < 2) { $("#cmp").innerHTML = ""; return; }
+    const sums = await api(`/api/compare?slugs=${slugs.join(",")}`);
+    const by = sums.map(s => Object.fromEntries(s.areas.map(a => [a.area, a])));
+    const areas = [...new Set(sums.flatMap(s => s.areas.map(a => a.area)))]
+      .sort((a, b) => Math.max(...by.map(x => x[b]?.pct_of_all_complaints || 0)) - Math.max(...by.map(x => x[a]?.pct_of_all_complaints || 0)));
+    $("#cmp").innerHTML = `<div class="card scroll"><table><thead><tr><th>Brand</th><th class="num">Items</th><th class="num">Avg ★</th><th class="num">Negative</th><th class="num">Net</th></tr></thead><tbody>
+      ${sums.map((s, i) => `<tr class="click" data-slug="${slugs[i]}"><td><b>${esc(s.company)}</b></td><td class="num">${s.n.toLocaleString()}</td><td class="num">${stars(s.avg_rating)}</td><td class="num">${s.pct_negative}%</td><td class="num">${signed(s.net_sentiment)}</td></tr>`).join("")}</tbody></table></div>
+      <h2>Complaint mix by topic</h2><p class="sub">Darker = bigger share of that brand's complaints. Click a cell to deep-dive.</p>
+      <div class="card scroll"><table><thead><tr><th>Topic</th>${sums.map(s => `<th class="num">${esc(s.company)}</th>`).join("")}</tr></thead><tbody>
+      ${areas.map(a => `<tr><td>${esc(a)}</td>${by.map((b, i) => { const v = b[a]?.pct_of_all_complaints; return v == null ? `<td class="num muted">–</td>` :
+        `<td class="num click" style="cursor:pointer;background:color-mix(in srgb,var(--red) ${Math.round(Math.min(1, v / 40) * 45)}%,transparent)" data-go="#/b/${slugs[i]}/topic/${encodeURIComponent(a)}" data-tip="${v}% of complaints · opportunity ${b[a].opportunity}">${v}%</td>`; }).join("")}</tr>`).join("")}
+      </tbody></table></div>`;
+    $("#cmp").querySelectorAll("[data-go]").forEach(c => c.onclick = () => location.hash = c.dataset.go);
+    $("#cmp").querySelectorAll("[data-slug]").forEach(c => c.onclick = () => location.hash = `#/b/${c.dataset.slug}`);
+  };
+  app.querySelectorAll("input[type=checkbox]").forEach(c => c.onchange = draw);
+  draw();
+}
+route();
+</script>
+</body>
+</html>

@@ -257,4 +257,44 @@ def run(df, company, competitors=None, recent_days=30):
         "untagged_quotes": _quotes(untagged_neg, 8),
         "competitors": competitor_mentions(df, competitors or []),
     }
+    summary["insights"] = insights(summary)
     return summary
+
+
+def insights(s):
+    """Plain-English headline findings, generated from the numbers."""
+    out, areas = [], s["areas"]
+    if areas:
+        a = areas[0]
+        out.append(f"<b>{a['area']}</b> is the biggest opportunity: {a['pct_of_all_complaints']}% of all complaints, "
+                   f"{a['negative_rate']}% of mentions negative" + (f", momentum {a['momentum']}x" if a["momentum"] != 1 else "") + ".")
+        big = [x for x in areas if x["pct_of_all_complaints"] >= 5]
+        rising = sorted([x for x in big if x["momentum"] >= 1.25], key=lambda x: -x["momentum"])
+        if rising:
+            r = rising[0]
+            out.append(f"<b>{r['area']}</b> is getting worse fastest: its share of complaints is {r['momentum']}x "
+                       f"what it was before the last 30 days.")
+        drag = [x for x in big if x["rating_drag"] is not None]
+        if drag:
+            d = min(drag, key=lambda x: x["rating_drag"])
+            if d["rating_drag"] < -0.3:
+                out.append(f"Reviews mentioning <b>{d['area']}</b> average {d['avg_rating']}★, "
+                           f"{abs(d['rating_drag'])}★ below the overall rating. It does the most damage to the store rating.")
+        churny = max(big or areas, key=lambda x: x["churn_mentions"])
+        if churny["churn_mentions"] >= 3:
+            out.append(f"<b>{churny['area']}</b> drives the most leaving and switching talk "
+                       f"({churny['churn_mentions']} complaints say they uninstalled, switched or won't come back).")
+    v = s.get("versions") or []
+    if len(v) >= 3:
+        latest, rest = v[0], [x["neg_rate"] for x in v[1:]]
+        base = sorted(rest)[len(rest) // 2]
+        if latest["neg_rate"] - base >= 10:
+            out.append(f"Possible bad release: {latest['source']} version <b>{latest['version']}</b> is "
+                       f"{latest['neg_rate']}% negative versus about {base}% for earlier versions.")
+    comp = [c for c in s.get("competitors", []) if c["in_churn_context"]]
+    if comp:
+        c = max(comp, key=lambda x: x["in_churn_context"])
+        out.append(f"Users who leave most often name <b>{c['competitor']}</b> ({c['in_churn_context']} mentions alongside switching language).")
+    if s.get("pct_complaints_untagged", 0) > 25:
+        out.append(f"{s['pct_complaints_untagged']}% of complaints fit no topic. Check 'Emerging themes' for areas the taxonomy is missing.")
+    return out

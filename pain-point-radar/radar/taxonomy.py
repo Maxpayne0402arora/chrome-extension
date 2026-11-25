@@ -116,3 +116,90 @@ def build(sector: str | None):
         for k, v in SECTOR_PACKS[s].items():
             tax.setdefault(k, []).extend(v)
     return tax
+
+
+# --------------------------------------------------------------------------- sub-themes for topic deep dives
+# When you zoom into an area, feedback is split into these finer sub-themes.
+# Phrases the users actually repeat are mined on top of this, so a topic with
+# no entry here (or a custom topic) still gets a "most talked about" breakdown.
+SUBTOPICS = {
+    "Customer support": {
+        "No / slow response": [r"no (response|reply)", r"not (responding|replying)", r"never (respond|repl)\w*",
+                               r"still waiting", r"waiting (for|since) \w+ (days|weeks|months)", r"\bno one\b", r"\bnobody\b"],
+        "Chatbot only, no human": [r"chat ?bot", r"\bbot\b", r"\bautomated\b", r"\bhuman\b", r"real person", r"talk to (an? )?(agent|person|someone)"],
+        "Can't reach them (call/email)": [r"no (call|phone|contact) (option|number)", r"can'?t (reach|contact|call|connect)",
+                                          r"\bhelpline\b", r"toll ?free", r"customer care number", r"\bemail(ed)?\b"],
+        "Closed without resolution": [r"(ticket|complaint|issue|case) (was |got )?(closed|marked)", r"\bunresolved\b",
+                                      r"not (been )?resolved", r"same (reply|response|answer)", r"copy ?paste", r"scripted"],
+        "Repeated follow-ups": [r"again and again", r"\b(multiple|many|several|\d+) times\b", r"follow ?ups?", r"every (day|time)",
+                                r"\bescalat\w*"],
+        "Promised callback never came": [r"call ?back"],
+        "Rude / unhelpful agents": [r"\brude\b", r"unprofessional", r"\buseless\b", r"misbehav\w*", r"hung up", r"\barrogant\b",
+                                    r"don'?t (care|bother)"],
+        "Language / understanding": [r"\bhindi\b", r"\benglish\b", r"\blanguage\b", r"don'?t understand", r"didn'?t understand"],
+    },
+    "Payments & checkout": {
+        "Money debited, order failed": [r"(money|amount|payment) (got |was )?(deducted|debited|cut)", r"(deducted|debited) but",
+                                        r"payment (failed|pending|stuck)", r"order (not|wasn'?t) (placed|confirmed)"],
+        "UPI problems": [r"\bupi\b", r"\bgpay\b", r"google pay", r"\bphonepe\b", r"\bpaytm\b"],
+        "Card / netbanking": [r"\bcards?\b", r"net ?banking", r"\bdeclined\b", r"\bbank\b"],
+        "Cash on delivery": [r"\bcod\b", r"cash on delivery", r"pay on delivery"],
+        "Coupons not applying": [r"coupons?", r"promo ?code", r"offer (not|wasn'?t|didn'?t) (appl|work)", r"\binvalid\b"],
+        "Wallet / coins / gift cards": [r"\bwallet\b", r"\bcoins?\b", r"\bcredits?\b", r"gift ?cards?", r"\bpoints\b"],
+        "EMI / pay later": [r"\bemi\b", r"pay ?later", r"\bbnpl\b"],
+        "Hidden / extra fees": [r"(platform|handling|convenience|delivery|packaging|cod) (fee|charge)s?", r"\bhidden\b", r"extra (charge|fee)"],
+    },
+    "Refunds & returns": {
+        "Refund delayed": [r"refund\w* (not|still|is|are)? ?(pending|delayed|not (received|credited|processed))",
+                           r"(waiting|wait) for (my )?refund", r"no refund", r"refund.{0,30}\b(days|weeks|months)\b"],
+        "Refund to wallet, not source": [r"refund\w* (to|in|into) (the )?(wallet|credits?|coins|gift card)", r"store credit"],
+        "Return pickup failed": [r"pick ?up", r"reverse pick ?up", r"pickup (cancel|fail|not)\w*"],
+        "Return rejected / not eligible": [r"non[- ]?returnable", r"not eligible", r"return (rejected|denied|declined)", r"no return policy"],
+        "Damaged / wrong item to return": [r"\bdamaged\b", r"wrong (item|product|size|colou?r|shade)", r"\bdefective\b"],
+        "Replacement / exchange issues": [r"\breplace\w*", r"\bexchange\w*"],
+    },
+    "Delivery & logistics": {
+        "Late / delayed": [r"\bdelay\w*", r"\blate\b", r"not (yet )?(delivered|arrived|received)", r"\b\d+ (days|weeks)\b"],
+        "Marked delivered, not received": [r"(marked|shows?|showing) (as )?delivered", r"delivered but (not|never)", r"never (received|got)"],
+        "Fake delivery attempts": [r"fake (delivery )?attempt", r"(customer|i was) not available", r"attempt(ed)? (failed|delivery)"],
+        "Tracking not updated": [r"\btracking\b", r"not (updat|moving)\w*", r"no update"],
+        "Delivery agent behaviour": [r"delivery (boy|guy|partner|agent|person|executive)", r"\brude\b", r"asked (for )?(money|extra|otp)"],
+        "Pincode / area not serviceable": [r"\bpincode\b", r"not serviceable", r"doesn'?t deliver", r"\bmy area\b"],
+        "Packaging / damaged in transit": [r"\bpackag\w*", r"\bopen(ed)? box\b", r"\btampered\b", r"\bleak\w*", r"\bbroken\b"],
+    },
+    "App performance & bugs": {
+        "Crashes": [r"\bcrash\w*", r"keeps? (closing|stopping)", r"force clos\w*"],
+        "Slow / loading": [r"\bslow\b", r"\bload\w*", r"\blag\w*", r"\bhang\w*", r"\bstuck\b", r"blank screen"],
+        "Broke after update": [r"\bupdat\w*", r"new version", r"latest version"],
+        "Errors at checkout / payment": [r"(checkout|payment|cart).{0,20}(error|fail|not working)", r"something went wrong"],
+        "Login loop / logout": [r"log(s|ged)? (me )?out", r"keeps? asking", r"\blogin\b.{0,20}(again|loop)"],
+        "Storage / battery / heavy app": [r"\bstorage\b", r"\bbattery\b", r"\bheavy\b", r"\bsize\b.{0,10}\bmb\b"],
+    },
+    "Product quality & authenticity": {
+        "Fake / counterfeit": [r"\bfake\b", r"\bduplicate\b", r"\bcounterfeit\b", r"\bfirst copy\b", r"not (genuine|original|authentic)"],
+        "Expired / near expiry": [r"\bexpir\w*", r"\bmfg\b", r"manufactur\w* date", r"\bold stock\b"],
+        "Damaged / defective": [r"\bdamaged\b", r"\bdefective\b", r"\bbroken\b", r"\bleak\w*"],
+        "Wrong / missing item": [r"wrong (item|product|size|colou?r|shade)", r"missing (item|product)", r"\bempty box\b"],
+        "Used / opened": [r"\bused\b", r"\bopened\b", r"\bseal\w*", r"\btampered\b"],
+        "Not as described": [r"not as (shown|described|pictured)", r"different from (the )?(picture|image|photo)", r"\bmisleading\b"],
+    },
+    "Login, OTP & account": {
+        "OTP not received": [r"\botp\b.{0,20}(not|never|late|didn)", r"(not|never) (getting|receiving|received) (the )?otp"],
+        "Account blocked / suspended": [r"account (is |got |was )?(blocked|suspended|locked|disabled|deactivated)"],
+        "Can't change number / email": [r"change (my )?(number|mobile|phone|email)", r"old number"],
+        "Hacked / unauthorised orders": [r"\bhack\w*", r"unauthori[sz]ed", r"someone (else )?(ordered|used)"],
+    },
+    "Pricing, fees & offers": {
+        "Price higher than elsewhere": [r"(costlier|expensive|higher) than", r"\bcheaper (on|at|elsewhere)\b", r"\boverpriced\b"],
+        "Prices raised before sale": [r"(increase|hike|raise)\w* (the )?price", r"fake (discount|sale|offer)", r"\bmrp\b"],
+        "Fees & charges": [r"(platform|handling|convenience|delivery|packaging) (fee|charge)s?", r"\bsurge\b"],
+        "Coupons / cashback not working": [r"coupons?", r"\bcashback\b", r"promo ?code", r"offer (not|didn'?t)"],
+        "Membership / subscription value": [r"\bmembership\b", r"\bsubscription\b", r"\bplus\b", r"\bprime\b", r"\bprive\b"],
+    },
+    "Order cancellation": {
+        "Cancelled by seller/platform": [r"(seller|they|company|flipkart|nykaa|amazon) cancel\w*", r"cancel\w* (automatically|without)",
+                                         r"auto[- ]?cancel\w*"],
+        "Can't cancel my order": [r"(can'?t|cannot|unable to|not able to) cancel", r"no cancel\w* option"],
+        "Cancellation fee": [r"cancel\w* (fee|charge)"],
+    },
+}

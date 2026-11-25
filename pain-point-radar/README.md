@@ -16,39 +16,59 @@ Your CSVs  ─┘                ├─ trend, app-version regressions, emerging
                      report.html · summary.json · feedback_tagged.csv
 ```
 
-## Quick start
+## Quick start (web app)
 
 ```bash
 cd pain-point-radar
 pip install -r requirements.txt
-python -m radar analyze "Nykaa" --sector beauty,ecommerce --competitors Purplle,Myntra,Tira
-open out/nykaa/report.html
+python -m radar serve          # opens http://localhost:8765
 ```
 
-More examples:
+1. **Type a brand** (Nykaa, Flipkart, Swiggy, Google… or any company) and click *Analyse*.
+   Known brands come pre-filled with app IDs, industry pack and competitors. For anything else the
+   apps are found by name. Under *Advanced* you can choose sources or upload your own CSVs.
+2. **Overview**: key findings in plain English, the opportunity ranking, trend, emerging themes,
+   unmet needs, why people leave, and competitors mentioned.
+3. **Topic deep dive**: click any topic (Customer support, Payments & checkout…) to zoom in:
+   - its size: mentions, share of complaints, % negative vs the brand, rating drag, momentum
+   - **sub-themes**, e.g. for support: no response, chatbot only, closed unresolved, callback never came, rude agents
+   - **most talked-about phrases**: what users actually repeat, merged so each row is distinct
+   - **what makes it bad vs what users like**: the words that separate angry from happy users on this topic
+   - **mentioned alongside**: other topics in the same reviews, often the root cause (support complaints are usually about refunds)
+   - trend over time, and the actual feedback with search, sentiment, source and sort filters
+   - **✦ Ask Claude** (if `anthropic` is installed and `ANTHROPIC_API_KEY` is set): turns the selected
+     complaints into problem statements, likely causes and "How might we…" questions
+4. **Your own topics**: under *Define your own topic*, give it a name, keywords and optional sub-themes
+   (`Callback: call back, callback`). Saved topics work for every brand, so you can define
+   "Payment experience" once and compare it across Nykaa, Flipkart and Myntra.
+5. **Compare**: heatmap of each brand's complaint mix. Click a cell to jump into that brand's topic.
+
+Everything runs on your machine. Data is cached in `out/<brand>/`, so re-opening a brand is instant;
+click *Analyse* again to refresh it.
+
+## Command line
 
 ```bash
-# Pin the app IDs if auto-resolve picks the wrong app
-python -m radar analyze "Flipkart" --play-id com.flipkart.android --appstore-id 742044692 \
-  --sector ecommerce --competitors Amazon,Meesho,Myntra
-
-# Tech company: forums matter more than app stores
+python -m radar analyze "Nykaa"                                  # presets fill in IDs/sector/competitors
+python -m radar analyze "Flipkart" --play-id com.flipkart.android --sector ecommerce --competitors Amazon,Meesho
 python -m radar analyze "Google Search" --query "google search" --sources reddit,hn --sector tech
+python -m radar analyze "Nykaa" --csv trustpilot.csv --csv twitter.csv   # add your own exports
+python -m radar analyze "Nykaa" --llm                            # Claude problem statements (needs ANTHROPIC_API_KEY)
 
-# Add feedback you exported by hand (Trustpilot, X, MouthShut, support tickets, NPS…)
-python -m radar analyze "Nykaa" --csv trustpilot.csv --csv twitter.csv
+python -m radar topic nykaa "Customer support"                   # topic deep dive in the terminal
+python -m radar topic nykaa "Delivery promise" --keywords "delivery date,promised,eta,on time"
 
-# Have Claude turn the top 5 areas into crisp problem statements (needs ANTHROPIC_API_KEY)
-pip install anthropic
-python -m radar analyze "Nykaa" --sector beauty,ecommerce --llm
-
-# Benchmark rivals side by side
-python -m radar analyze "Purplle" --sector beauty,ecommerce
 python -m radar compare out/nykaa/summary.json out/purplle/summary.json
 ```
 
 CSV import needs a text column (`text`/`review`/`content`/`body`/`comment`/`feedback`);
 `date`, `rating`, `title`, `source`, `url` are optional.
+
+**Why a local app and not a plain web page?** Browsers aren't allowed to fetch Play Store,
+App Store or Reddit pages from another site (CORS), so collection has to run on a server.
+A small local server needs no hosting or accounts and keeps the data on your laptop. To share it
+with a team later, the same app can be deployed to Render/Railway/a VM. Note that Reddit often
+blocks cloud IPs, so you'd want PRAW credentials there.
 
 ## How to read the report
 
@@ -62,7 +82,7 @@ CSV import needs a text column (`text`/`review`/`content`/`body`/`comment`/`feed
 | **Rating drag** | Avg ★ of reviews mentioning the area minus overall avg | Its cost to the store rating |
 | **Churn language** | "uninstalled", "switched to X", "never again"… | Pain that costs the company customers |
 
-Then: **Emerging themes** shows phrases that come up far more in complaints than in
+Then **Emerging themes** shows phrases that come up far more in complaints than in
 praise, which catches what the taxonomy misses. **Unfiled complaints** lists negative
 feedback with no area. Read both and add keywords to `radar/taxonomy.py`. Tuning that
 file to the company's domain matters more than anything else you can change.

@@ -19,8 +19,15 @@ HTTP = requests.Session()
 HTTP.headers.update({"User-Agent": UA})
 
 
+LOG = print  # the web server swaps this for a per-job logger
+
+
+def log(msg: str) -> None:
+    LOG(msg)
+
+
 def warn(msg: str) -> None:
-    print(f"  [warn] {msg}", file=sys.stderr)
+    LOG(f"  [warn] {msg}")
 
 
 def _rec(source, text, *, id=None, date=None, rating=None, title="", likes=0,
@@ -63,7 +70,7 @@ def resolve_play_id(company: str, country: str) -> str | None:
         hits = search(company, n_hits=5, lang="en", country=country)
         for h in hits:
             if h.get("appId"):
-                print(f"  Play Store: resolved '{company}' -> {h['appId']} ({h.get('title')})")
+                log(f"  Play Store: resolved '{company}' -> {h['appId']} ({h.get('title')})")
                 return h["appId"]
     except Exception as e:  # noqa: BLE001
         warn(f"Play Store search failed: {e}")
@@ -106,7 +113,7 @@ def resolve_app_store_id(company: str, country: str) -> str | None:
         r.raise_for_status()
         res = r.json().get("results", [])
         if res:
-            print(f"  App Store: resolved '{company}' -> {res[0]['trackId']} ({res[0].get('trackName')})")
+            log(f"  App Store: resolved '{company}' -> {res[0]['trackId']} ({res[0].get('trackName')})")
             return str(res[0]["trackId"])
     except Exception as e:  # noqa: BLE001
         warn(f"App Store search failed: {e}")

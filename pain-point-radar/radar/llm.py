@@ -56,50 +56,65 @@ Comments:
 {comments}"""
 
 
-def deep_dive(df, summary, top_k=5, per_area=60):
+class LLMError(Exception):
+    pass
+
+
+def available():
+    try:
+        import anthropic  # noqa: F401
+        return True
+    except ImportError:
+        return False
+
+
+def analyse_texts(company, area, texts):
+    """Send up to ~60 complaints to Claude and get structured pain points back."""
     try:
         import anthropic
-    except ImportError:
-        print("  [warn] pip install anthropic to use --llm", file=sys.stderr)
-        return summary
+    except ImportError as e:
+        raise LLMError("pip install anthropic to use Claude") from e
     client = anthropic.Anthropic()
+    comments = "\n".join(f"- {t[:600]}" for t in texts)
+    try:
+        resp = client.beta.messages.create(
+            model=MODEL,
+            max_tokens=16000,
+            betas=["server-side-fallback-2026-07-01"],
+            fallbacks="default",  # retry on a fallback model if the request is declined
+            output_config={"effort": "medium", "format": {"type": "json_schema", "schema": SCHEMA}},
+            messages=[{"role": "user", "content": PROMPT.format(
+                company=company, n=len(texts), area=area, comments=comments)}],
+        )
+    except anthropic.AuthenticationError as e:
+        raise LLMError("Claude auth failed: set ANTHROPIC_API_KEY or run `ant auth login`") from e
+    except anthropic.RateLimitError as e:
+        raise LLMError("Rate limited by the Claude API; try again in a minute") from e
+    except anthropic.APIStatusError as e:
+        raise LLMError(f"Claude API error {e.status_code}: {e.message}") from e
+    except anthropic.APIConnectionError as e:
+        raise LLMError(f"Could not reach the Claude API: {e}") from e
+    if resp.stop_reason in ("refusal", "max_tokens"):
+        raise LLMError(f"Claude stopped early ({resp.stop_reason})")
+    text = "".join(b.text for b in resp.content if b.type == "text")
+    try:
+        return json.loads(text)
+    except json.JSONDecodeError as e:
+        raise LLMError("Could not parse Claude's answer") from e
+
+
+def deep_dive(df, summary, top_k=5, per_area=60):
     neg = df[df["label"] == "negative"]
     for area in summary["areas"][:top_k]:
         sub = neg[neg["areas"].map(lambda l, a=area["area"]: a in l)]
         sub = sub.sort_values("likes", ascending=False).head(per_area)
         if len(sub) < 5:
             continue
-        comments = "\n".join(f"- {t[:600]}" for t in sub["text"])
         print(f"  Claude: analysing '{area['area']}' ({len(sub)} comments)")
         try:
-            resp = client.beta.messages.create(
-                model=MODEL,
-                max_tokens=16000,
-                betas=["server-side-fallback-2026-07-01"],
-                fallbacks="default",  # retry on a fallback model if the request is declined
-                output_config={"effort": "medium",
-                               "format": {"type": "json_schema", "schema": SCHEMA}},
-                messages=[{"role": "user", "content": PROMPT.format(
-                    company=summary["company"], n=len(sub), area=area["area"], comments=comments)}],
-            )
-        except anthropic.AuthenticationError:
-            print("  [warn] Claude auth failed - set ANTHROPIC_API_KEY or run `ant auth login`", file=sys.stderr)
-            return summary
-        except anthropic.RateLimitError:
-            print("  [warn] rate limited by Claude API; skipping remaining areas", file=sys.stderr)
-            return summary
-        except anthropic.APIStatusError as e:
-            print(f"  [warn] Claude API error {e.status_code}: {e.message}", file=sys.stderr)
-            continue
-        except anthropic.APIConnectionError as e:
-            print(f"  [warn] could not reach Claude API: {e}", file=sys.stderr)
-            return summary
-        if resp.stop_reason in ("refusal", "max_tokens"):
-            print(f"  [warn] Claude stopped early ({resp.stop_reason}) on '{area['area']}'", file=sys.stderr)
-            continue
-        text = "".join(b.text for b in resp.content if b.type == "text")
-        try:
-            area["llm"] = json.loads(text)
-        except json.JSONDecodeError:
-            print(f"  [warn] could not parse Claude output for '{area['area']}'", file=sys.stderr)
+            area["llm"] = analyse_texts(summary["company"], area["area"], list(sub["text"]))
+        except LLMError as e:
+            print(f"  [warn] {e}", file=sys.stderr)
+            if "auth" in str(e).lower() or "install" in str(e):
+                break
     return summary
