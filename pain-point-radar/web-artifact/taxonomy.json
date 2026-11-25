@@ -1,0 +1,609 @@
+{
+"core": {
+"App performance & bugs": [
+"\\bcrash\\w*",
+"\\bbug\\w*",
+"\\bglitch\\w*",
+"\\bhang(s|ing)?\\b",
+"\\bslow\\b",
+"\\blag\\w*",
+"not (working|loading|opening)",
+"\\bfreez\\w*",
+"\\berror\\b",
+"\\bstuck\\b",
+"blank screen",
+"keeps? (closing|crashing)",
+"\\bloading\\b",
+"server (down|issue)",
+"\\bupdate\\b.*(worse|broke|ruin)"
+],
+"Login, OTP & account": [
+"\\botp\\b",
+"\\blog ?in\\b",
+"\\bsign ?(in|up)\\b",
+"\\bpassword\\b",
+"\\baccount (blocked|suspended|locked|deleted|hacked)",
+"\\bverif\\w+",
+"\\bkyc\\b",
+"can'?t (log|sign)"
+],
+"Customer support": [
+"customer (care|service|support)",
+"\\bsupport\\b",
+"\\bhelpline\\b",
+"\\bchat ?bot\\b",
+"\\bexecutive\\b",
+"no (response|reply)",
+"\\bnobody\\b.*(help|respond)",
+"\\bticket\\b",
+"\\bescalat\\w*",
+"\\bcomplain\\w*",
+"(call|mail|email)(ed)? (them|multiple|many)",
+"\\bbot\\b",
+"human agent",
+"\\bunresponsive\\b"
+],
+"Payments & checkout": [
+"\\bpayment\\w*",
+"\\bcheckout\\b",
+"\\bupi\\b",
+"\\bcard\\b",
+"\\bcod\\b",
+"cash on delivery",
+"money (deducted|debited|cut)",
+"amount (deducted|debited)",
+"\\btransaction\\w*",
+"\\bwallet\\b",
+"\\bdeducted\\b",
+"\\bdebited\\b",
+"\\bcharged\\b"
+],
+"Refunds & returns": [
+"\\brefund\\w*",
+"\\breturn\\w*",
+"\\breplace\\w*",
+"\\bexchange\\b",
+"money back",
+"\\breverse pickup\\b"
+],
+"Delivery & logistics": [
+"\\bdelivery\\b",
+"\\b(not|never|wasn'?t|isn'?t) (been )?delivered\\b",
+"\\bundelivered\\b",
+"\\bdelivered late\\b",
+"\\bcourier\\b",
+"\\bshipping\\b",
+"\\bshipment\\b",
+"\\bdispatch\\w*",
+"\\bdelay\\w*",
+"\\blate\\b",
+"\\btracking\\b",
+"\\bpincode\\b",
+"\\bnot received\\b",
+"\\bnever (arrived|received|came)",
+"\\bdelivery (boy|guy|partner|agent)\\b",
+"\\bfake (delivery|attempt)"
+],
+"Order cancellation": [
+"\\bcancel\\w*"
+],
+"Pricing, fees & offers": [
+"\\bpric\\w*",
+"\\bexpensive\\b",
+"\\bcostly\\b",
+"\\boverpriced\\b",
+"\\bfee\\b",
+"\\bcharges?\\b",
+"\\bdiscount\\w*",
+"\\boffer\\w*",
+"\\bcoupon\\w*",
+"\\bdeal\\w*",
+"\\bcashback\\b",
+"\\bhidden\\b",
+"\\bsale\\b",
+"\\bsurge\\b",
+"\\bplatform fee\\b",
+"\\bdelivery fee\\b",
+"\\bsubscription\\b"
+],
+"Product quality & authenticity": [
+"\\bfake\\b",
+"\\bduplicate\\b",
+"\\bcounterfeit\\b",
+"\\bgenuine\\b",
+"\\bauthentic\\w*",
+"\\boriginal\\b",
+"\\bdamaged?\\b",
+"\\bdefective\\b",
+"\\bbroken\\b",
+"\\bexpired\\b",
+"\\bused product\\b",
+"\\bwrong (item|product|size|colou?r)",
+"\\bquality\\b",
+"\\bmissing (item|product)"
+],
+"UX, search & navigation": [
+"\\bui\\b",
+"\\bux\\b",
+"\\binterface\\b",
+"\\bconfusing\\b",
+"\\bnavigat\\w*",
+"\\bsearch\\b",
+"\\bfilter\\w*",
+"\\bdifficult to (find|use)\\b",
+"\\bhard to (find|use)\\b",
+"\\bclutter\\w*",
+"\\bdesign\\b",
+"\\buser friendly\\b"
+],
+"Ads, spam & notifications": [
+"\\bads?\\b",
+"\\badvertis\\w*",
+"\\bspam\\w*",
+"\\bnotification\\w*",
+"\\bpromotional\\b",
+"\\btoo many (mails|sms|messages|calls)",
+"\\bpop ?ups?\\b"
+],
+"Trust, privacy & security": [
+"\\bscam\\w*",
+"\\bfraud\\w*",
+"\\bcheat\\w*",
+"\\bprivacy\\b",
+"\\bdata (leak|breach|sold)\\b",
+"\\bhack\\w*",
+"\\bsecurity\\b",
+"\\bpermissions?\\b",
+"\\btrust\\b"
+]
+},
+"sectors": {
+"ecommerce": {
+"Catalogue, stock & sizing": [
+"\\bout of stock\\b",
+"\\bunavailable\\b",
+"\\bsize\\w*\\b",
+"\\bfit(ting)?\\b",
+"\\bsize chart\\b",
+"\\bcatalog\\w*",
+"\\bvariety\\b",
+"\\bselection\\b",
+"\\bnot as (shown|described|pictured)\\b"
+],
+"Seller & marketplace issues": [
+"\\bseller\\w*",
+"\\bvendor\\w*",
+"\\bthird[- ]party\\b"
+]
+},
+"beauty": {
+"Shade, skin & product match": [
+"\\bshade\\w*",
+"\\bskin\\b",
+"\\ballerg\\w*",
+"\\brash\\w*",
+"\\bbreak ?out\\w*",
+"\\btone\\b",
+"\\btexture\\b"
+],
+"Freebies, samples & loyalty": [
+"\\bfree(bie)?s?\\b",
+"\\bsample\\w*",
+"\\bgift\\w*",
+"\\bloyalty\\b",
+"\\breward\\w*",
+"\\bpoints\\b",
+"\\bprive\\b"
+],
+"Catalogue, stock & sizing": [
+"\\bout of stock\\b",
+"\\bunavailable\\b",
+"\\bnot as (shown|described|pictured)\\b"
+]
+},
+"food_delivery": {
+"Food quality & order accuracy": [
+"\\bcold\\b",
+"\\bstale\\b",
+"\\btaste\\w*",
+"\\bspill\\w*",
+"\\bmissing\\b",
+"\\bportion\\w*",
+"\\bhygien\\w*"
+],
+"Restaurant & partner behaviour": [
+"\\brestaurant\\w*",
+"\\brider\\w*",
+"\\brude\\b",
+"\\btip\\w*"
+]
+},
+"fintech": {
+"Transactions & settlement": [
+"\\bfailed\\b",
+"\\bpending\\b",
+"\\bsettle\\w*",
+"\\bbank\\b",
+"\\bkyc\\b",
+"\\bcredit\\b",
+"\\bloan\\w*",
+"\\binterest\\b"
+],
+"Rewards & cashback": [
+"\\breward\\w*",
+"\\bcashback\\b",
+"\\bscratch card\\b",
+"\\bpoints\\b"
+]
+},
+"tech": {
+"Feature removal & product changes": [
+"\\bremoved\\b",
+"\\bdeprecat\\w*",
+"\\bkilled\\b",
+"\\bshut ?down\\b",
+"\\bsunset\\w*",
+"\\bgraveyard\\b"
+],
+"Search & result quality": [
+"\\bsearch results?\\b",
+"\\bseo\\b",
+"\\bsponsored\\b",
+"\\brelevan\\w*",
+"\\bai overview\\w*"
+],
+"Developer experience & docs": [
+"\\bapi\\b",
+"\\bdocs?\\b",
+"\\bdocumentation\\b",
+"\\bsdk\\b",
+"\\bconsole\\b",
+"\\bquota\\w*",
+"\\bbilling\\b"
+]
+}
+},
+"subtopics": {
+"Customer support": {
+"No / slow response": [
+"no (response|reply)",
+"not (responding|replying)",
+"never (respond|repl)\\w*",
+"still waiting",
+"waiting (for|since) \\w+ (days|weeks|months)",
+"\\bno one\\b",
+"\\bnobody\\b"
+],
+"Chatbot only, no human": [
+"chat ?bot",
+"\\bbot\\b",
+"\\bautomated\\b",
+"\\bhuman\\b",
+"real person",
+"talk to (an? )?(agent|person|someone)"
+],
+"Can't reach them (call/email)": [
+"no (call|phone|contact) (option|number)",
+"can'?t (reach|contact|call|connect)",
+"\\bhelpline\\b",
+"toll ?free",
+"customer care number",
+"\\bemail(ed)?\\b"
+],
+"Closed without resolution": [
+"(ticket|complaint|issue|case) (was |got )?(closed|marked)",
+"\\bunresolved\\b",
+"not (been )?resolved",
+"same (reply|response|answer)",
+"copy ?paste",
+"scripted"
+],
+"Repeated follow-ups": [
+"again and again",
+"\\b(multiple|many|several|\\d+) times\\b",
+"follow ?ups?",
+"every (day|time)",
+"\\bescalat\\w*"
+],
+"Promised callback never came": [
+"call ?back"
+],
+"Rude / unhelpful agents": [
+"\\brude\\b",
+"unprofessional",
+"\\buseless\\b",
+"misbehav\\w*",
+"hung up",
+"\\barrogant\\b",
+"don'?t (care|bother)"
+],
+"Language / understanding": [
+"\\bhindi\\b",
+"\\benglish\\b",
+"\\blanguage\\b",
+"don'?t understand",
+"didn'?t understand"
+]
+},
+"Payments & checkout": {
+"Money debited, order failed": [
+"(money|amount|payment) (got |was )?(deducted|debited|cut)",
+"(deducted|debited) but",
+"payment (failed|pending|stuck)",
+"order (not|wasn'?t) (placed|confirmed)"
+],
+"UPI problems": [
+"\\bupi\\b",
+"\\bgpay\\b",
+"google pay",
+"\\bphonepe\\b",
+"\\bpaytm\\b"
+],
+"Card / netbanking": [
+"\\bcards?\\b",
+"net ?banking",
+"\\bdeclined\\b",
+"\\bbank\\b"
+],
+"Cash on delivery": [
+"\\bcod\\b",
+"cash on delivery",
+"pay on delivery"
+],
+"Coupons not applying": [
+"coupons?",
+"promo ?code",
+"offer (not|wasn'?t|didn'?t) (appl|work)",
+"\\binvalid\\b"
+],
+"Wallet / coins / gift cards": [
+"\\bwallet\\b",
+"\\bcoins?\\b",
+"\\bcredits?\\b",
+"gift ?cards?",
+"\\bpoints\\b"
+],
+"EMI / pay later": [
+"\\bemi\\b",
+"pay ?later",
+"\\bbnpl\\b"
+],
+"Hidden / extra fees": [
+"(platform|handling|convenience|delivery|packaging|cod) (fee|charge)s?",
+"\\bhidden\\b",
+"extra (charge|fee)"
+]
+},
+"Refunds & returns": {
+"Refund delayed": [
+"refund\\w* (not|still|is|are)? ?(pending|delayed|not (received|credited|processed))",
+"(waiting|wait) for (my )?refund",
+"no refund",
+"refund.{0,30}\\b(days|weeks|months)\\b"
+],
+"Refund to wallet, not source": [
+"refund\\w* (to|in|into) (the )?(wallet|credits?|coins|gift card)",
+"store credit"
+],
+"Return pickup failed": [
+"pick ?up",
+"reverse pick ?up",
+"pickup (cancel|fail|not)\\w*"
+],
+"Return rejected / not eligible": [
+"non[- ]?returnable",
+"not eligible",
+"return (rejected|denied|declined)",
+"no return policy"
+],
+"Damaged / wrong item to return": [
+"\\bdamaged\\b",
+"wrong (item|product|size|colou?r|shade)",
+"\\bdefective\\b"
+],
+"Replacement / exchange issues": [
+"\\breplace\\w*",
+"\\bexchange\\w*"
+]
+},
+"Delivery & logistics": {
+"Late / delayed": [
+"\\bdelay\\w*",
+"\\blate\\b",
+"not (yet )?(delivered|arrived|received)",
+"\\b\\d+ (days|weeks)\\b"
+],
+"Marked delivered, not received": [
+"(marked|shows?|showing) (as )?delivered",
+"delivered but (not|never)",
+"never (received|got)"
+],
+"Fake delivery attempts": [
+"fake (delivery )?attempt",
+"(customer|i was) not available",
+"attempt(ed)? (failed|delivery)"
+],
+"Tracking not updated": [
+"\\btracking\\b",
+"not (updat|moving)\\w*",
+"no update"
+],
+"Delivery agent behaviour": [
+"delivery (boy|guy|partner|agent|person|executive)",
+"\\brude\\b",
+"asked (for )?(money|extra|otp)"
+],
+"Pincode / area not serviceable": [
+"\\bpincode\\b",
+"not serviceable",
+"doesn'?t deliver",
+"\\bmy area\\b"
+],
+"Packaging / damaged in transit": [
+"\\bpackag\\w*",
+"\\bopen(ed)? box\\b",
+"\\btampered\\b",
+"\\bleak\\w*",
+"\\bbroken\\b"
+]
+},
+"App performance & bugs": {
+"Crashes": [
+"\\bcrash\\w*",
+"keeps? (closing|stopping)",
+"force clos\\w*"
+],
+"Slow / loading": [
+"\\bslow\\b",
+"\\bload\\w*",
+"\\blag\\w*",
+"\\bhang\\w*",
+"\\bstuck\\b",
+"blank screen"
+],
+"Broke after update": [
+"\\bupdat\\w*",
+"new version",
+"latest version"
+],
+"Errors at checkout / payment": [
+"(checkout|payment|cart).{0,20}(error|fail|not working)",
+"something went wrong"
+],
+"Login loop / logout": [
+"log(s|ged)? (me )?out",
+"keeps? asking",
+"\\blogin\\b.{0,20}(again|loop)"
+],
+"Storage / battery / heavy app": [
+"\\bstorage\\b",
+"\\bbattery\\b",
+"\\bheavy\\b",
+"\\bsize\\b.{0,10}\\bmb\\b"
+]
+},
+"Product quality & authenticity": {
+"Fake / counterfeit": [
+"\\bfake\\b",
+"\\bduplicate\\b",
+"\\bcounterfeit\\b",
+"\\bfirst copy\\b",
+"not (genuine|original|authentic)"
+],
+"Expired / near expiry": [
+"\\bexpir\\w*",
+"\\bmfg\\b",
+"manufactur\\w* date",
+"\\bold stock\\b"
+],
+"Damaged / defective": [
+"\\bdamaged\\b",
+"\\bdefective\\b",
+"\\bbroken\\b",
+"\\bleak\\w*"
+],
+"Wrong / missing item": [
+"wrong (item|product|size|colou?r|shade)",
+"missing (item|product)",
+"\\bempty box\\b"
+],
+"Used / opened": [
+"\\bused\\b",
+"\\bopened\\b",
+"\\bseal\\w*",
+"\\btampered\\b"
+],
+"Not as described": [
+"not as (shown|described|pictured)",
+"different from (the )?(picture|image|photo)",
+"\\bmisleading\\b"
+]
+},
+"Login, OTP & account": {
+"OTP not received": [
+"\\botp\\b.{0,20}(not|never|late|didn)",
+"(not|never) (getting|receiving|received) (the )?otp"
+],
+"Account blocked / suspended": [
+"account (is |got |was )?(blocked|suspended|locked|disabled|deactivated)"
+],
+"Can't change number / email": [
+"change (my )?(number|mobile|phone|email)",
+"old number"
+],
+"Hacked / unauthorised orders": [
+"\\bhack\\w*",
+"unauthori[sz]ed",
+"someone (else )?(ordered|used)"
+]
+},
+"Pricing, fees & offers": {
+"Price higher than elsewhere": [
+"(costlier|expensive|higher) than",
+"\\bcheaper (on|at|elsewhere)\\b",
+"\\boverpriced\\b"
+],
+"Prices raised before sale": [
+"(increase|hike|raise)\\w* (the )?price",
+"fake (discount|sale|offer)",
+"\\bmrp\\b"
+],
+"Fees & charges": [
+"(platform|handling|convenience|delivery|packaging) (fee|charge)s?",
+"\\bsurge\\b"
+],
+"Coupons / cashback not working": [
+"coupons?",
+"\\bcashback\\b",
+"promo ?code",
+"offer (not|didn'?t)"
+],
+"Membership / subscription value": [
+"\\bmembership\\b",
+"\\bsubscription\\b",
+"\\bplus\\b",
+"\\bprime\\b",
+"\\bprive\\b"
+]
+},
+"Order cancellation": {
+"Cancelled by seller/platform": [
+"(seller|they|company|flipkart|nykaa|amazon) cancel\\w*",
+"cancel\\w* (automatically|without)",
+"auto[- ]?cancel\\w*"
+],
+"Can't cancel my order": [
+"(can'?t|cannot|unable to|not able to) cancel",
+"no cancel\\w* option"
+],
+"Cancellation fee": [
+"cancel\\w* (fee|charge)"
+]
+}
+},
+"churn": [
+"\\buninstall\\w*",
+"\\bdelet(ed|ing) (the|this) app\\b",
+"\\bnever (again|order|buy|use)\\b",
+"\\bswitch(ed|ing)? to\\b",
+"\\bmov(ed|ing) to\\b",
+"\\bgoing back to\\b",
+"\\blast time\\b",
+"\\bnot (going to|gonna) (use|order|buy)\\b",
+"\\bclos(e|ed|ing) (my )?account\\b",
+"\\bbetter (alternative|option)s?\\b"
+],
+"feature_request": [
+"\\bplease add\\b",
+"\\bwish (there|it|you)\\b",
+"\\bwould be (great|nice|better)\\b",
+"\\bshould (have|add|allow)\\b",
+"\\bneed (an?|the) option\\b",
+"\\bfeature request\\b",
+"\\bwhy (can'?t|don'?t) (i|you|we)\\b",
+"\\bif only\\b",
+"\\bit would help\\b",
+"\\bkindly add\\b",
+"\\bplease (bring|introduce|allow|make)\\b"
+]
+}

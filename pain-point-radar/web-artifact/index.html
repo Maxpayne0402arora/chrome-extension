@@ -1,0 +1,856 @@
+<title>Pain-Point Radar</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=Space+Grotesk:wght@500;600;700&display=swap">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.4.1/papaparse.min.js"></script>
+<style>
+/* Layout: sticky top bar + single reading column (max 1120px); dashboards use grids that stack under 820px. */
+:root{
+  --bg:#f5f6f7; --surface:#ffffff; --ink:#15191e; --ink2:#5d6670; --rule:#e1e4e8; --grid:#eceef1; --chip:#eef0f3;
+  --blue:#257de0; --blue-soft:#d6e7fb; --red:#dc3c3d; --red-soft:#fbe3e3; --mid:#d5d9de; --amber:#a86a00; --amber-soft:#fdf1d6;
+  --f-display:"Space Grotesk",ui-sans-serif,system-ui,sans-serif; --f-body:"Inter",ui-sans-serif,system-ui,-apple-system,"Segoe UI",sans-serif;
+}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){
+  --bg:#0f1215; --surface:#171b20; --ink:#eef1f4; --ink2:#9aa3ad; --rule:#2a3038; --grid:#232930; --chip:#20262d;
+  --blue:#4a9af0; --blue-soft:#1b3550; --red:#eb6263; --red-soft:#3d1f22; --mid:#39414a; --amber:#e0a540; --amber-soft:#3a2d12; color-scheme:dark}}
+:root[data-theme="dark"]{
+  --bg:#0f1215; --surface:#171b20; --ink:#eef1f4; --ink2:#9aa3ad; --rule:#2a3038; --grid:#232930; --chip:#20262d;
+  --blue:#4a9af0; --blue-soft:#1b3550; --red:#eb6263; --red-soft:#3d1f22; --mid:#39414a; --amber:#e0a540; --amber-soft:#3a2d12; color-scheme:dark}
+*{box-sizing:border-box}
+body{background:var(--bg);color:var(--ink);font:15px/1.55 var(--f-body)}
+body::before{content:"";position:fixed;inset:0 0 auto;height:env(safe-area-inset-top,0px);z-index:10;background:var(--surface)}
+a{color:var(--blue)}
+header{position:sticky;top:env(safe-area-inset-top,0px);z-index:9;background:var(--surface);border-bottom:1px solid var(--rule)}
+.wrap{max-width:1120px;margin:0 auto;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px))}
+.hbar{display:flex;gap:14px;align-items:center;flex-wrap:wrap;padding-block:10px}
+.logo{font:700 17px var(--f-display);letter-spacing:-.01em;color:var(--ink);text-decoration:none;display:flex;gap:8px;align-items:center}
+.logo svg{flex:none}
+nav{display:flex;gap:2px;flex-wrap:wrap}
+nav a{padding:6px 10px;border-radius:6px;text-decoration:none;color:var(--ink2);font-size:14px}
+nav a.on{background:var(--chip);color:var(--ink);font-weight:600}
+nav a.off{opacity:.4;pointer-events:none}
+.cur{margin-left:auto;font-size:13px;color:var(--ink2)}
+main.wrap{padding-block:24px 80px}
+h1{font:700 28px/1.2 var(--f-display);margin:0 0 6px;letter-spacing:-.015em;text-wrap:balance}
+h2{font:600 18px/1.3 var(--f-display);margin:30px 0 4px;text-wrap:balance}
+h3{font:600 15px var(--f-display);margin:0 0 8px}
+.sub{color:var(--ink2);font-size:14px;margin:0 0 10px;max-width:72ch}
+.card{background:var(--surface);border:1px solid var(--rule);border-radius:10px;padding:16px 18px;margin-top:10px;min-width:0}
+.row{display:flex;gap:10px;flex-wrap:wrap;align-items:center}
+input,select,textarea,button{font:inherit;color:inherit}
+input[type=text],input[type=number],select,textarea{background:var(--surface);border:1px solid var(--rule);border-radius:8px;padding:8px 10px;min-width:0}
+:focus-visible{outline:2px solid var(--blue);outline-offset:1px}
+button{border:1px solid var(--rule);background:var(--surface);border-radius:8px;padding:8px 14px;cursor:pointer}
+button.primary{background:var(--ink);color:var(--surface);border-color:var(--ink);font-weight:600}
+button:disabled{opacity:.5;cursor:default}
+.big{font-size:18px;padding:12px 14px;flex:1 1 220px}
+.tiles{display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:10px;margin-top:14px}
+.tile{background:var(--surface);border:1px solid var(--rule);border-radius:10px;padding:12px 14px}
+.tile b{display:block;font:600 24px var(--f-display);font-variant-numeric:tabular-nums}
+.tile span{color:var(--ink2);font-size:13px}.tile small{display:block;color:var(--ink2);font-size:12px}
+table{width:100%;border-collapse:collapse;font-size:14px}
+th{text-align:left;color:var(--ink2);font-weight:500;font-size:11.5px;text-transform:uppercase;letter-spacing:.05em;padding:6px 8px;border-bottom:1px solid var(--rule)}
+td{padding:8px;border-bottom:1px solid var(--grid);vertical-align:middle;font-variant-numeric:tabular-nums}
+.num{text-align:right;white-space:nowrap}
+tr.click{cursor:pointer}tr.click:hover td{background:var(--chip)}
+.bar{height:10px;background:var(--grid);border-radius:4px;min-width:50px}
+.bar i{display:block;height:100%;background:var(--blue);border-radius:4px}
+.hlist .item{display:grid;grid-template-columns:minmax(110px,230px) 1fr 58px 72px;gap:10px;align-items:center;padding:7px 6px;border-radius:6px;cursor:pointer}
+.hlist .item:hover,.hlist .item.on{background:var(--chip)}
+.hlist .n{text-align:right;font-variant-numeric:tabular-nums;font-size:13px}
+.hlist .m{text-align:right;color:var(--ink2);font-size:12.5px}
+.split{display:flex;height:12px;gap:2px;border-radius:4px;overflow:hidden}.split i{display:block;height:100%}
+.legend{display:flex;gap:14px;font-size:13px;color:var(--ink2);margin-top:8px;flex-wrap:wrap}
+.legend i{display:inline-block;width:10px;height:10px;border-radius:2px;margin-right:6px;vertical-align:-1px}
+.chips{display:flex;flex-wrap:wrap;gap:6px}
+.chip{background:var(--chip);border:1px solid var(--rule);border-radius:999px;padding:4px 11px;font-size:13px;cursor:pointer}
+.chip em{color:var(--ink2);font-style:normal;margin-left:6px}
+.chip.on{background:var(--ink);color:var(--surface);border-color:var(--ink)}.chip.on em{color:inherit;opacity:.75}
+.fb{border-top:1px solid var(--grid);padding:10px 0}.fb:first-child{border-top:0}
+.meta{color:var(--ink2);font-size:12px}
+.tag{display:inline-block;font-size:11px;padding:1px 7px;border-radius:999px;border:1px solid var(--rule);margin-right:4px}
+.tag.negative{border-color:var(--red);color:var(--red)}.tag.positive{border-color:var(--blue);color:var(--blue)}
+mark{background:var(--blue-soft);color:inherit;border-radius:3px;padding:0 2px}
+.grid2{display:grid;grid-template-columns:1fr 1fr;gap:12px}.grid3{display:grid;grid-template-columns:repeat(3,1fr);gap:12px}
+.grid2>*,.grid3>*{min-width:0}
+@media(max-width:820px){.grid2,.grid3{grid-template-columns:1fr}.hide-sm{display:none}
+  .hlist .item{grid-template-columns:1fr 58px}.hlist .item .bar{grid-column:1/-1;order:3}.hlist .m{display:none}}
+.pp{border-top:1px solid var(--grid);padding:12px 0}.pp:first-child{border-top:0}
+blockquote{margin:6px 0;padding:6px 10px;border-left:3px solid var(--rule);background:var(--chip);border-radius:0 6px 6px 0;font-size:14px}
+.tip{position:fixed;pointer-events:none;background:var(--ink);color:var(--surface);padding:6px 9px;border-radius:6px;font-size:12px;z-index:30;max-width:260px}
+svg text{fill:var(--ink2);font-size:11px;font-family:var(--f-body)}
+.muted{color:var(--ink2)}.err{color:var(--red)}
+details summary{cursor:pointer;color:var(--ink2);font-size:14px}
+label.ck{display:inline-flex;gap:6px;align-items:center;font-size:14px;margin-right:12px}
+.field{display:flex;flex-direction:column;gap:4px;font-size:13px;color:var(--ink2)}
+.field input,.field select,.field textarea{color:var(--ink);font-size:14px}
+.empty{padding:28px;text-align:center;color:var(--ink2)}
+.scroll{overflow-x:auto}
+.banner{border-radius:8px;padding:10px 12px;font-size:13.5px;background:var(--amber-soft);color:var(--ink);border:1px solid color-mix(in srgb,var(--amber) 35%,transparent)}
+.banner b{color:var(--amber)}
+.dsgrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(250px,1fr));gap:10px}
+.ds{display:flex;flex-direction:column;gap:4px;cursor:pointer}
+.ds:hover{border-color:var(--ink2)}
+.pill{display:inline-block;font-size:11px;padding:1px 8px;border-radius:999px;background:var(--chip);color:var(--ink2);border:1px solid var(--rule)}
+.sev{display:inline-flex;gap:2px;vertical-align:middle}.sev i{width:8px;height:8px;border-radius:2px;background:var(--grid)}.sev i.f{background:var(--red)}
+.spinner{display:inline-block;width:14px;height:14px;border:2px solid var(--rule);border-top-color:var(--blue);border-radius:50%;animation:sp 0.8s linear infinite;vertical-align:-2px;margin-right:6px}
+@keyframes sp{to{transform:rotate(360deg)}}
+@media (prefers-reduced-motion:reduce){.spinner{animation:none}}
+</style>
+
+<header><div class="wrap hbar">
+  <a class="logo" href="#brands"><svg width="20" height="20" viewBox="0 0 20 20" aria-hidden="true"><circle cx="10" cy="10" r="8.5" fill="none" stroke="currentColor" stroke-width="1.5"/><circle cx="10" cy="10" r="4.5" fill="none" stroke="currentColor" stroke-width="1.5" opacity=".55"/><path d="M10 10 L16 4.5" stroke="var(--red)" stroke-width="2" stroke-linecap="round"/><circle cx="10" cy="10" r="1.6" fill="currentColor"/></svg>Pain-Point Radar</a>
+  <nav id="nav"></nav><span class="cur" id="cur"></span>
+</div></header>
+<main class="wrap" id="app"><div class="empty"><span class="spinner"></span>Loading…</div></main>
+<div class="tip" id="tip" hidden></div>
+
+<script>
+"use strict";
+/* ============================================================ utils */
+const $ = (s, el = document) => el.querySelector(s);
+const esc = s => String(s ?? "").replace(/[&<>"']/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+const pct = v => v == null ? "–" : `${v}%`;
+const stars = v => v == null ? "–" : `${v}★`;
+const signed = v => v == null ? "–" : (v > 0 ? "+" : "") + v;
+const mom = m => m == null ? "–" : m >= 1.25 ? `↑ ${m}×` : m <= 0.8 ? `↓ ${m}×` : `${m}×`;
+const r1 = v => Math.round(v * 10) / 10, r2 = v => Math.round(v * 100) / 100;
+const mean = a => a.length ? a.reduce((s, x) => s + x, 0) / a.length : null;
+const slugify = s => String(s).toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "").slice(0, 60) || "x";
+const safeUrl = u => typeof u === "string" && u.startsWith("https://") ? u : null;
+const store = {get(k){try{return JSON.parse(localStorage.getItem(k))}catch{return null}}, set(k,v){try{localStorage.setItem(k,JSON.stringify(v))}catch{}}};
+document.addEventListener("mousemove", e => {
+  const t = e.target.closest?.("[data-tip]"), tip = $("#tip");
+  if (!t) { tip.hidden = true; return; }
+  tip.textContent = t.dataset.tip; tip.hidden = false;
+  tip.style.left = Math.min(e.clientX + 12, innerWidth - 270) + "px"; tip.style.top = (e.clientY + 14) + "px";
+});
+
+/* ============================================================ engine: sentiment (for uploads without stars/labels) */
+const LEX = (() => {
+  const m = {};
+  const add = (w, s) => w.split(" ").forEach(x => m[x] = s);
+  add("worst pathetic horrible terrible scam fraud useless disgusting cheated cheating fake pathetic", -3);
+  add("bad poor awful worse rude never refund delayed delay broken damaged expired stuck crash crashes crashing crashed fails failed failure error wrong missing lost waste wasted annoying frustrating frustrated disappointed disappointing unacceptable irritating unprofessional cheat duplicate defective harassment issue issues problem problems complaint complain slow lag hang hangs nobody pending", -2);
+  add("hate angry hidden expensive costly overpriced difficult confusing spam unable cannot cant can't don't didn't doesn't won't not", -1);
+  add("good nice fine okay ok helpful easy fast quick smooth genuine reliable polite resolved affordable convenient", 2);
+  add("great excellent amazing awesome love loved best perfect superb fantastic wonderful happy satisfied recommend", 3);
+  ["not","cant","can't","don't","didn't","doesn't","won't","cannot","never","no"].forEach(w => m[w] = m[w] ?? 0);
+  return m;
+})();
+const NEGATORS = new Set(["not","no","never","dont","don't","didnt","didn't","doesnt","doesn't","cant","can't","cannot","wont","won't","isnt","isn't","wasnt","wasn't","without"]);
+function textSentiment(t) {
+  const w = t.toLowerCase().match(/[a-z']+/g) || [];
+  let s = 0;
+  w.forEach((x, i) => {
+    let v = LEX[x]; if (!v || NEGATORS.has(x)) return;
+    if (w.slice(Math.max(0, i - 3), i).some(p => NEGATORS.has(p))) v = -v * 0.75;
+    s += v;
+  });
+  if (/!{2,}/.test(t)) s *= 1.15;
+  return s / Math.sqrt(s * s + 15);
+}
+
+/* ============================================================ engine: taxonomy + preparation */
+let TAX = null;
+const rx = list => new RegExp(list.map(p => `(?:${p})`).join("|"), "i");
+function buildTax(sector) {
+  const t = {};
+  for (const [k, v] of Object.entries(TAX.core)) t[k] = [...v];
+  for (const s of String(sector || "").split(",").map(x => x.trim()).filter(Boolean))
+    for (const [k, v] of Object.entries(TAX.sectors[s] || {})) (t[k] = t[k] || []).push(...v);
+  return Object.fromEntries(Object.entries(t).map(([k, v]) => [k, rx(v)]));
+}
+const COLS = {
+  text: ["text","review","content","body","comment","feedback","message","review_text","comment_text"],
+  date: ["date","at","created_at","timestamp","review_date","time","updated"],
+  rating: ["rating","score","stars","star_rating"],
+  title: ["title","subject","headline"],
+  source: ["source","channel","platform"],
+  likes: ["likes","thumbsupcount","thumbs_up","upvotes","helpful","votes"],
+  version: ["version","reviewcreatedversion","appversion","app_version"],
+  url: ["url","link","permalink"],
+  sentiment: ["sentiment"], label: ["label"],
+};
+function normalizeRows(records, defaultSource) {
+  if (!records.length) return [];
+  const keys = Object.keys(records[0]);
+  const lower = Object.fromEntries(keys.map(k => [k.toLowerCase().trim(), k]));
+  const pick = opts => { for (const o of opts) if (lower[o]) return lower[o]; return null; };
+  const c = Object.fromEntries(Object.entries(COLS).map(([k, v]) => [k, pick(v)]));
+  if (!c.text) throw new Error(`No text column found. Name one of your columns: ${COLS.text.slice(0, 6).join(", ")}.`);
+  return records.map(r => {
+    const rating = c.rating ? parseFloat(r[c.rating]) : NaN;
+    const sent = c.sentiment ? parseFloat(r[c.sentiment]) : NaN;
+    return {
+      text: [c.title ? r[c.title] : "", r[c.text]].filter(Boolean).join(". "),
+      source: (c.source && String(r[c.source] || "").trim()) || defaultSource,
+      date: c.date ? normDate(r[c.date]) : null,
+      rating: rating >= 1 && rating <= 5 ? rating : null,
+      likes: c.likes ? Math.max(0, parseInt(r[c.likes]) || 0) : 0,
+      version: c.version ? (String(r[c.version] || "").trim() || null) : null,
+      url: c.url ? safeUrl(r[c.url]) : null,
+      sentiment: Number.isFinite(sent) ? sent : null,
+    };
+  }).filter(r => r.text && r.text.length >= 12);
+}
+function normDate(v) {
+  if (v == null || v === "") return null;
+  if (typeof v === "number") return new Date(v < 1e12 ? v * 1000 : v).toISOString().slice(0, 10);
+  const s = String(v).trim();
+  let m = s.match(/^(\d{4})-(\d{2})-(\d{2})/); if (m) return `${m[1]}-${m[2]}-${m[3]}`;
+  m = s.match(/^(\d{1,2})[\/-](\d{1,2})[\/-](\d{4})/); if (m) return `${m[3]}-${m[2].padStart(2,"0")}-${m[1].padStart(2,"0")}`;
+  const d = new Date(s); return isNaN(d) ? null : d.toISOString().slice(0, 10);
+}
+function prepare(rows, opts) {
+  const tax = buildTax(opts.sector);
+  const churn = rx(TAX.churn), fr = rx(TAX.feature_request);
+  const seen = new Set(), out = [];
+  for (const r of rows) {
+    const text = String(r.text).replace(/<[^>]+>/g, " ").replace(/\s+/g, " ").trim();
+    const key = r.source + "|" + text + "|" + (r.date || "");
+    if (seen.has(key)) continue; seen.add(key);
+    const ts = r.sentiment != null ? r.sentiment : textSentiment(text);
+    const sentiment = r.sentiment != null ? r.sentiment : (r.rating != null ? 0.35 * ts + 0.65 * (r.rating - 3) / 2 : ts);
+    out.push({...r, text, sentiment: r2(sentiment),
+      label: sentiment <= -0.15 ? "negative" : sentiment >= 0.15 ? "positive" : "neutral",
+      month: r.date ? r.date.slice(0, 7) : null,
+      areas: Object.entries(tax).filter(([, re]) => re.test(text)).map(([k]) => k),
+      churn: churn.test(text), fr: fr.test(text)});
+  }
+  return out;
+}
+
+/* ============================================================ engine: analysis */
+const STOP = new Set(("a about above across after afterwards again against all almost alone along already also although always am among amongst amount an and another any anyhow anyone anything anyway anywhere are around as at back be became because become becomes becoming been before beforehand behind being below beside besides between beyond both bottom but by call can cannot cant could couldnt de describe detail do does doing done down due during each eg eight either eleven else elsewhere empty enough etc even ever every everyone everything everywhere except few fifteen fifty fill find fire first five for former formerly forty found four from front full further get give go had has hasnt have he hence her here hereafter hereby herein hereupon hers herself him himself his how however hundred i ie if in inc indeed interest into is it its itself keep last latter latterly least less ltd made many may me meanwhile might mill mine more moreover most mostly move much must my myself name namely neither never nevertheless next nine no nobody none noone nor not nothing now nowhere of off often on once one only onto or other others otherwise our ours ourselves out over own part per perhaps please put rather re same see seem seemed seeming seems serious several she should show side since sincere six sixty so some somehow someone something sometime sometimes somewhere still such system take ten than that the their them themselves then thence there thereafter thereby therefore therein thereupon these they thick thin third this those though three through throughout thru thus to together too top toward towards twelve twenty two un under until up upon us very via was we well were what whatever when whence whenever where whereafter whereas whereby wherein whereupon wherever whether which while whither who whoever whole whom whose why will with within without would yet you your yours yourself yourselves " +
+  "app apps good nice bad worst best use using just like really dont don didn doesn im ve ll time also get got isn wasn won aren hai ki ka ke ko se na nahi").split(" "));
+function grams(item, stopExtra) {
+  if (item._g) return item._g;
+  const toks = (item.text.toLowerCase().match(/[a-z][a-z]+/g) || []).filter(w => !STOP.has(w) && !stopExtra.has(w));
+  const g = new Set();
+  for (let n = 1; n <= 3; n++) for (let i = 0; i + n <= toks.length; i++) g.add(toks.slice(i, i + n).join(" "));
+  return item._g = g;
+}
+function docFreq(items, stopExtra, minN = 1, maxN = 3) {
+  const m = new Map();
+  items.forEach((it, idx) => grams(it, stopExtra).forEach(g => {
+    const n = g.split(" ").length; if (n < minN || n > maxN) return;
+    let a = m.get(g); if (!a) m.set(g, a = []); a.push(idx);
+  }));
+  return m;
+}
+function logOdds(A, B, stopExtra, minN, maxN) {
+  const fa = docFreq(A, stopExtra, minN, maxN), fb = docFreq(B, stopExtra, minN, maxN);
+  let na = 0, nb = 0; fa.forEach(v => na += v.length); fb.forEach(v => nb += v.length);
+  const keys = new Set([...fa.keys(), ...fb.keys()]), out = [];
+  for (const k of keys) {
+    const a = (fa.get(k)?.length || 0) + .5, b = (fb.get(k)?.length || 0) + .5;
+    const z = ((Math.log(a) - Math.log(na)) - (Math.log(b) - Math.log(nb))) / Math.sqrt(1 / a + 1 / b);
+    out.push({phrase: k, z: r1(z), a: Math.round(a - .5), b: Math.round(b - .5)});
+  }
+  return out;
+}
+const collapse = (rows, n) => { const kept = []; for (const r of rows) { if (kept.some(k => k.phrase.includes(r.phrase) || r.phrase.includes(k.phrase))) continue; kept.push(r); if (kept.length === n) break; } return kept; };
+function momentum(subNeg, allNeg, days = 30) {
+  const dates = allNeg.map(x => x.date).filter(Boolean).sort();
+  if (!dates.length) return 1;
+  const end = new Date(dates[dates.length - 1]); end.setDate(end.getDate() - days);
+  const cut = end.toISOString().slice(0, 10);
+  const totR = dates.filter(d => d > cut).length, totO = dates.length - totR;
+  if (totR < 10 || totO < 10) return 1;
+  const sd = subNeg.map(x => x.date).filter(Boolean);
+  const r = sd.filter(d => d > cut).length / totR, o = sd.filter(d => d <= cut).length / totO;
+  if (!o) return r ? 2 : 1;
+  return r2(Math.min(2, Math.max(.5, r / o)));
+}
+function quotes(items, n = 4) {
+  const seen = new Set(), long = items.filter(x => x.text.length >= 40), base = long.length ? long : items;
+  return [...base].sort((a, b) => b.likes - a.likes || a.sentiment - b.sentiment).filter(x => !seen.has(x.text) && seen.add(x.text)).slice(0, n);
+}
+function analyse(items, ds) {
+  const company = ds.name, comps = String(ds.competitors || "").split(",").map(s => s.trim()).filter(Boolean);
+  const stopExtra = new Set(company.toLowerCase().match(/[a-z]+/g) || []);
+  const neg = items.filter(x => x.label === "negative"), nNeg = Math.max(neg.length, 1);
+  const rated = items.filter(x => x.rating != null), overall = mean(rated.map(x => x.rating));
+  const areaNames = [...new Set(items.flatMap(x => x.areas))];
+  let areas = areaNames.map(a => {
+    const sub = items.filter(x => x.areas.includes(a)), sn = neg.filter(x => x.areas.includes(a));
+    if (sub.length < 3) return null;
+    const sr = sub.filter(x => x.rating != null).map(x => x.rating);
+    const share = sn.length / nNeg, sev = sn.length ? -mean(sn.map(x => x.sentiment)) : 0;
+    const m = momentum(sn, neg, 30), reach = 1 + Math.log10(1 + (mean(sn.map(x => x.likes)) || 0));
+    return {area: a, mentions: sub.length, negative_mentions: sn.length, pct_of_all_complaints: r1(100 * share),
+      negative_rate: r1(100 * sn.length / sub.length), severity: r2(sev), momentum: m, reach: r2(reach),
+      avg_rating: sr.length ? r2(mean(sr)) : null, rating_drag: sr.length && overall != null ? r2(mean(sr) - overall) : null,
+      churn_mentions: sn.filter(x => x.churn).length, raw: share * sev * m * reach, quotes: quotes(sn)};
+  }).filter(Boolean);
+  const top = Math.max(...areas.map(a => a.raw), 1e-9);
+  areas.forEach(a => a.opportunity = Math.round(100 * a.raw / top));
+  areas.sort((a, b) => b.opportunity - a.opportunity);
+  const emerging = neg.length >= 20 && items.length - neg.length >= 20 ? collapse(
+    logOdds(neg, items.filter(x => x.label !== "negative"), stopExtra, 2, 3).filter(r => r.a >= 3).sort((a, b) => b.z - a.z || b.a - a.a), 25) : [];
+  const months = {};
+  items.forEach(x => { if (!x.month) return; (months[x.month] = months[x.month] || []).push(x); });
+  const timeline = Object.keys(months).sort().slice(-18).map(m => {
+    const g = months[m], gr = g.filter(x => x.rating != null);
+    return {month: m, n: g.length, neg_rate: r1(100 * g.filter(x => x.label === "negative").length / g.length), avg_rating: gr.length ? r2(mean(gr.map(x => x.rating))) : null};
+  });
+  const bySrc = {}; items.forEach(x => (bySrc[x.source] = bySrc[x.source] || []).push(x));
+  const sources = Object.entries(bySrc).map(([k, g]) => { const gr = g.filter(x => x.rating != null);
+    return {source: k, n: g.length, neg_rate: r1(100 * g.filter(x => x.label === "negative").length / g.length), avg_rating: gr.length ? r2(mean(gr.map(x => x.rating))) : null}; });
+  const byVer = {}; items.filter(x => x.version).forEach(x => (byVer[x.version] = byVer[x.version] || []).push(x));
+  const versions = Object.entries(byVer).filter(([, g]) => g.length >= 15).map(([v, g]) => ({version: v, n: g.length,
+    first: g.map(x => x.date).filter(Boolean).sort()[0] || "", neg_rate: r1(100 * g.filter(x => x.label === "negative").length / g.length)}))
+    .sort((a, b) => b.first.localeCompare(a.first)).slice(0, 12);
+  const competitors = comps.map(c => { const re = new RegExp(`\\b${c.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}\\b`, "i");
+    const sub = items.filter(x => re.test(x.text)); return {competitor: c, mentions: sub.length, in_churn_context: sub.filter(x => x.churn).length}; })
+    .filter(c => c.mentions).sort((a, b) => b.mentions - a.mentions);
+  const untagged = neg.filter(x => !x.areas.length);
+  const s = {company, n: items.length, avg_rating: overall != null ? r2(overall) : null,
+    date_range: [items.map(x => x.date).filter(Boolean).sort()[0], items.map(x => x.date).filter(Boolean).sort().pop()],
+    pct_negative: r1(100 * neg.length / Math.max(items.length, 1)), pct_positive: r1(100 * items.filter(x => x.label === "positive").length / Math.max(items.length, 1)),
+    churn_signals: items.filter(x => x.churn).length, pct_untagged: r1(100 * untagged.length / nNeg),
+    areas, emerging, timeline, sources, versions, competitors,
+    feature_requests: quotes(items.filter(x => x.fr), 6), churn_quotes: quotes(neg.filter(x => x.churn), 6)};
+  s.net = r1(s.pct_positive - s.pct_negative);
+  s.insights = insights(s);
+  return s;
+}
+function insights(s) {
+  const out = [], A = s.areas;
+  if (A.length) {
+    const a = A[0];
+    out.push(`<b>${esc(a.area)}</b> is the biggest opportunity: ${a.pct_of_all_complaints}% of all complaints, ${a.negative_rate}% of its mentions negative${a.momentum !== 1 ? `, momentum ${a.momentum}×` : ""}.`);
+    const big = A.filter(x => x.pct_of_all_complaints >= 5);
+    const rising = big.filter(x => x.momentum >= 1.25).sort((a, b) => b.momentum - a.momentum)[0];
+    if (rising) out.push(`<b>${esc(rising.area)}</b> is getting worse fastest: its share of complaints is ${rising.momentum}× what it was before the last 30 days.`);
+    const drag = big.filter(x => x.rating_drag != null).sort((a, b) => a.rating_drag - b.rating_drag)[0];
+    if (drag && drag.rating_drag < -0.3) out.push(`Reviews mentioning <b>${esc(drag.area)}</b> average ${drag.avg_rating}★, ${Math.abs(drag.rating_drag)}★ below the overall rating.`);
+    const churny = [...(big.length ? big : A)].sort((a, b) => b.churn_mentions - a.churn_mentions)[0];
+    if (churny && churny.churn_mentions >= 3) out.push(`<b>${esc(churny.area)}</b> drives the most leaving and switching talk (${churny.churn_mentions} complaints).`);
+  }
+  if (s.versions.length >= 3) { const l = s.versions[0], rest = s.versions.slice(1).map(v => v.neg_rate).sort((a, b) => a - b), base = rest[Math.floor(rest.length / 2)];
+    if (l.neg_rate - base >= 10) out.push(`Possible bad release: version <b>${esc(l.version)}</b> is ${l.neg_rate}% negative versus about ${base}% for earlier versions.`); }
+  const c = s.competitors.filter(x => x.in_churn_context).sort((a, b) => b.in_churn_context - a.in_churn_context)[0];
+  if (c) out.push(`Users who leave most often name <b>${esc(c.competitor)}</b> (${c.in_churn_context} mentions alongside switching language).`);
+  if (s.pct_untagged > 25) out.push(`${s.pct_untagged}% of complaints fit no topic. Check the emerging themes, then define your own topic for them.`);
+  return out;
+}
+function kwRegex(kws) { const p = kws.map(k => k.trim()).filter(Boolean); return p.length ? new RegExp(p.map(k => `\\b${k.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}\\w*`).join("|"), "i") : null; }
+function topicMatcher(def) { if (def.keywords?.length) { const re = kwRegex(def.keywords); return x => re.test(x.text); } return x => x.areas.includes(def.topic); }
+function subthemeRegexes(def) {
+  const out = {};
+  for (const [k, v] of Object.entries(TAX.subtopics[def.topic] || {})) out[k] = rx(v);
+  for (const [k, v] of Object.entries(def.subthemes || {})) { const re = kwRegex(v); if (re) out[k] = re; }
+  return out;
+}
+function topicDive(D, def) {
+  const items = D.items, company = D.ds.name, match = topicMatcher(def);
+  const stopExtra = new Set(company.toLowerCase().match(/[a-z]+/g) || []);
+  const sub = items.filter(match), negAll = items.filter(x => x.label === "negative");
+  const out = {topic: def.topic, custom: !!def.keywords?.length, keywords: def.keywords || [], mentions: sub.length,
+    brand_pct_negative: D.summary.pct_negative};
+  if (!sub.length) return out;
+  const sn = sub.filter(x => x.label === "negative"), rated = sub.filter(x => x.rating != null);
+  Object.assign(out, {
+    pct_of_all_feedback: r1(100 * sub.length / items.length), pct_of_all_complaints: r1(100 * sn.length / Math.max(negAll.length, 1)),
+    pct_negative: r1(100 * sn.length / sub.length), avg_rating: rated.length ? r2(mean(rated.map(x => x.rating))) : null,
+    rating_drag: rated.length && D.summary.avg_rating != null ? r2(mean(rated.map(x => x.rating)) - D.summary.avg_rating) : null,
+    momentum: momentum(sn, negAll), churn_mentions: sn.filter(x => x.churn).length});
+  const subs = subthemeRegexes(def);
+  const hit = new Set();
+  out.subthemes = Object.entries(subs).map(([name, re]) => {
+    const s = sub.filter(x => re.test(x.text)); if (!s.length) return null;
+    s.forEach(x => hit.add(x));
+    const n = s.filter(x => x.label === "negative"), sr = s.filter(x => x.rating != null);
+    return {name, mentions: s.length, pct_of_topic: r1(100 * s.length / sub.length), pct_negative: r1(100 * n.length / s.length),
+      avg_rating: sr.length ? r2(mean(sr.map(x => x.rating))) : null, momentum: momentum(n, sn)};
+  }).filter(Boolean).sort((a, b) => b.mentions - a.mentions);
+  out.unclassified_pct = Object.keys(subs).length ? r1(100 * (sub.length - hit.size) / sub.length) : null;
+  // most talked-about phrases, with near-duplicates (same reviews) merged
+  const exclude = def.keywords?.length ? kwRegex(def.keywords) : (TAX.core[def.topic] ? rx(TAX.core[def.topic]) : null);
+  const df = docFreq(sub, stopExtra, 2, 3), minDf = Math.min(3, Math.max(2, Math.floor(sub.length / 50)));
+  const cands = [...df.entries()].filter(([, v]) => v.length >= minDf).sort((a, b) => b[1].length - a[1].length || b[0].length - a[0].length).slice(0, 500);
+  const kept = [], keptSets = [];
+  for (const [ph, docs] of cands) {
+    if (exclude && new RegExp(`^(?:${exclude.source})$`, "i").test(ph)) continue;
+    const set = new Set(docs);
+    if (keptSets.some(k => { let inter = 0; set.forEach(d => k.has(d) && inter++); return inter / (set.size + k.size - inter) >= 0.6; })) continue;
+    kept.push({phrase: ph, mentions: docs.length, pct_of_topic: r1(100 * docs.length / sub.length),
+      pct_negative: r1(100 * docs.filter(i => sub[i].label === "negative").length / docs.length)});
+    keptSets.push(set); if (kept.length === 20) break;
+  }
+  out.phrases = kept;
+  const pos = sub.filter(x => x.label === "positive");
+  if (sn.length >= 8 && pos.length >= 8) {
+    const lo = logOdds(sn, pos, stopExtra, 1, 3);
+    out.pain = collapse(lo.filter(r => r.a >= 3 && r.z > 1.5).sort((a, b) => b.z - a.z), 12);
+    out.delight = collapse(lo.filter(r => r.b >= 3 && r.z < -1.5).sort((a, b) => a.z - b.z), 12);
+  } else { out.pain = []; out.delight = []; }
+  const co = {}; sub.forEach(x => x.areas.forEach(a => { if (a !== def.topic) co[a] = (co[a] || 0) + 1; }));
+  out.co_mentions = Object.entries(co).sort((a, b) => b[1] - a[1]).slice(0, 8).map(([area, c]) => ({area, pct_of_topic: r1(100 * c / sub.length)}));
+  const tot = {}, mm = {}; items.forEach(x => { if (x.month) tot[x.month] = (tot[x.month] || 0) + 1; });
+  sub.forEach(x => { if (x.month) (mm[x.month] = mm[x.month] || []).push(x); });
+  out.timeline = Object.keys(mm).sort().slice(-18).map(m => ({month: m, n: mm[m].length, share: r1(100 * mm[m].length / tot[m]),
+    neg_rate: r1(100 * mm[m].filter(x => x.label === "negative").length / mm[m].length)}));
+  return out;
+}
+function filterFeedback(D, f) {
+  let d = D.items;
+  if (f.topic || f.keywords?.length) d = d.filter(topicMatcher(f));
+  if (f.subtheme) { const re = subthemeRegexes(f)[f.subtheme]; if (re) d = d.filter(x => re.test(x.text)); }
+  for (const term of [f.phrase, f.q]) if (term) { const re = new RegExp("\\b" + term.trim().split(/\s+/).map(w => w.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")).join("\\W+"), "i"); d = d.filter(x => re.test(x.text)); }
+  if (f.sentiment) d = d.filter(x => x.label === f.sentiment);
+  if (f.source) d = d.filter(x => x.source === f.source);
+  const sorters = {helpful: (a, b) => b.likes - a.likes || a.sentiment - b.sentiment, recent: (a, b) => (b.date || "").localeCompare(a.date || ""),
+    negative: (a, b) => a.sentiment - b.sentiment, positive: (a, b) => b.sentiment - a.sentiment};
+  return [...d].sort(sorters[f.sort] || sorters.helpful);
+}
+
+/* ============================================================ data layer */
+const S = {db: null, assets: null, sample: null, datasets: [], topics: [], cache: {}, cur: store.get("radar.cur") || "example", local: {}, dbState: "loading"};
+const EXAMPLE = {id: "example", name: "Example brand (made-up data)", sector: "beauty,ecommerce", competitors: "Purplle", example: true};
+function allDatasets() { return [EXAMPLE, ...Object.values(S.local), ...S.datasets]; }
+async function loadDataset(id) {
+  if (S.cache[id]) return S.cache[id];
+  const ds = allDatasets().find(d => d.id === id);
+  if (!ds) throw new Error("That dataset is no longer available.");
+  let rows;
+  if (ds.example) rows = (await (await fetch("example.json")).json()).rows;
+  else if (ds.rows) rows = ds.rows;
+  else { const r = await fetch(ds.assetId ? "/_blob/" + ds.assetId : ds.url); if (!r.ok) throw new Error("Could not load this dataset's file."); rows = (await r.json()).rows; }
+  const items = prepare(rows, ds);
+  return S.cache[id] = {ds, items, summary: analyse(items, ds)};
+}
+function saveTopicsLocal() { store.set("radar.topics", S.topics); }
+async function initCapabilities() {
+  const c = window.claude;
+  if (!c?.use) { S.dbState = "none"; S.topics = store.get("radar.topics") || []; route(); return; }
+  const [db, assets, sample] = await Promise.all([c.use("db"), c.use("assets"), c.use("sample")]);
+  S.db = db; S.assets = assets; S.sample = sample;
+  if (!db) { S.dbState = "none"; S.topics = store.get("radar.topics") || []; route(); return; }
+  const timer = setTimeout(() => { S.dbState = "slow"; route(); }, 10000);
+  db.collection("datasets").onSnapshot(snap => {
+    clearTimeout(timer); S.dbState = "ok";
+    S.datasets = snap.docs.filter(d => d.exists).map(d => ({id: d.id, ...d.data()})).sort((a, b) => String(b.uploadedAt).localeCompare(String(a.uploadedAt)));
+    if (["", "brands", "compare"].includes(location.hash.slice(1))) route();
+  }, () => { clearTimeout(timer); S.dbState = "error"; route(); });
+  db.collection("topics").onSnapshot(snap => {
+    S.topics = snap.docs.filter(d => d.exists).map(d => ({id: d.id, ...d.data()}));
+    if (location.hash === "#topic" && !document.activeElement?.closest?.("#ct")) route();
+  }, () => {});
+  route();
+}
+async function saveTopic(t) {
+  const id = slugify(t.name);
+  if (S.db) { await S.db.collection("topics").doc(id).set({name: t.name, keywords: t.keywords, subthemes: t.subthemes || {}}); }
+  else { S.topics = [...S.topics.filter(x => x.id !== id), {id, ...t}]; saveTopicsLocal(); }
+}
+async function deleteTopic(id) {
+  if (S.db) await S.db.collection("topics").doc(id).delete(); else { S.topics = S.topics.filter(x => x.id !== id); saveTopicsLocal(); }
+}
+
+/* ============================================================ router + nav */
+const VIEWS = {brands: home, overview, topic: topicView, feedback: feedbackView, compare: compareView, quick: quickView};
+const state = {topicDef: null, filter: {}, explorePhrase: null, quickBrand: ""};
+function nav(on) {
+  const ds = allDatasets().find(d => d.id === S.cur);
+  const links = [["brands", "Brands"], ["overview", "Overview"], ["topic", "Topic deep dive"], ["feedback", "All feedback"], ["compare", "Compare"]];
+  $("#nav").innerHTML = links.map(([h, t]) => `<a href="#${h}" class="${h === on ? "on" : ""} ${!ds && ["overview","topic","feedback"].includes(h) ? "off" : ""}">${t}</a>`).join("");
+  $("#cur").textContent = ds && on !== "brands" && on !== "quick" && on !== "compare" ? ds.name : "";
+}
+async function route() {
+  const name = location.hash.slice(1) || "brands";
+  const view = VIEWS[name] || home;
+  try { await view(); } catch (e) { console.error(e); $("#app").innerHTML = `<div class="card"><p class="err">${esc(e.message)}</p><a href="#brands">Back to brands</a></div>`; }
+}
+addEventListener("hashchange", () => { scrollTo(0, 0); route(); });
+function openDataset(id, view = "overview") { S.cur = id; store.set("radar.cur", id); if (location.hash === "#" + view) route(); else location.hash = view; }
+
+/* ============================================================ shared UI bits */
+function lineChart(points, key, label) {
+  if (!points || points.length < 2) return `<p class="meta">Not enough dated feedback for a trend.</p>`;
+  const W = 560, H = 180, L = 38, R = 10, T = 10, B = 24;
+  const ymax = Math.max(10, Math.ceil(Math.max(...points.map(p => p[key])) * 1.15 / 10) * 10);
+  const x = i => L + i * (W - L - R) / (points.length - 1), y = v => T + (H - T - B) * (1 - v / ymax);
+  const ticks = [0, ymax / 2, ymax].map(v => `<line x1="${L}" x2="${W - R}" y1="${y(v)}" y2="${y(v)}" stroke="var(--grid)"/><text x="${L - 6}" y="${y(v) + 4}" text-anchor="end">${Math.round(v)}%</text>`).join("");
+  const step = Math.max(1, Math.ceil(points.length / 5)), last = points.length - 1;
+  const xl = points.map((p, i) => ((i % step === 0 && last - i >= step / 2) || i === last) ? `<text x="${x(i)}" y="${H - 6}" text-anchor="${i === 0 ? "start" : i === last ? "end" : "middle"}">${esc(p.month)}</text>` : "").join("");
+  const dots = points.map((p, i) => `<circle cx="${x(i)}" cy="${y(p[key])}" r="3.5" fill="var(--blue)" stroke="var(--surface)" stroke-width="2"/><rect x="${x(i) - 12}" y="0" width="24" height="${H}" fill="transparent" data-tip="${esc(p.month)}: ${label} ${p[key]}% (n=${p.n})"/>`).join("");
+  const path = points.map((p, i) => `${x(i)},${y(p[key])}`).join(" ");
+  return `<svg viewBox="0 0 ${W} ${H}" width="100%" role="img" aria-label="${esc(label)} by month">${ticks}<polygon points="${x(0)},${y(0)} ${path} ${x(last)},${y(0)}" fill="var(--blue)" opacity=".08"/><polyline points="${path}" fill="none" stroke="var(--blue)" stroke-width="2" stroke-linejoin="round"/>${dots}${xl}</svg>`;
+}
+function hl(text, terms) {
+  let h = esc(text);
+  for (const t of terms.filter(Boolean)) { const w = t.trim().split(/\s+/).map(s => esc(s).replace(/[.*+?^${}()|[\]\\]/g, "\\$&")); h = h.replace(new RegExp(`\\b(${w.join("\\W+")}\\w*)`, "gi"), "<mark>$1</mark>"); }
+  return h;
+}
+function fbItem(i, terms = [], label) {
+  const bits = [i.source, i.rating ? i.rating + "★" : "", i.likes ? i.likes + " found helpful" : "", i.date || "", i.version ? "v" + i.version : ""].filter(Boolean);
+  const lb = label || i.label, u = safeUrl(i.url);
+  return `<div class="fb"><div>${hl(i.text.length > 700 ? i.text.slice(0, 700) + "…" : i.text, terms)}</div>
+    <div class="meta" style="margin-top:4px"><span class="tag ${lb}">${lb}</span>${esc(bits.join(" · "))}${u ? ` · <a href="${esc(u)}" target="_blank" rel="noopener">source</a>` : ""}${i.areas?.length ? ` · ${i.areas.map(esc).join(", ")}` : ""}</div></div>`;
+}
+function sevDots(n) { return `<span class="sev" aria-label="severity ${n} of 5">${[1,2,3,4,5].map(i => `<i class="${i <= n ? "f" : ""}"></i>`).join("")}</span>`; }
+function claudeError(e) {
+  return {not_granted: "Claude wasn't allowed for this page. You can allow it from the page's permissions menu.", rate_limited: "Too many requests at once. Wait a minute and try again.",
+    refused: "Claude declined this request.", invalid_json: "Claude's answer came back in the wrong shape. Try again.", prompt_too_large: "Too much text was selected. Narrow the selection and try again.",
+    sampling_disabled: "Asking Claude is turned off for this account."}[e?.code] || (e?.message || "Something went wrong asking Claude.");
+}
+const PAIN_SCHEMA = `{"summary": "2 sentences", "pain_points": [{"problem": "one sentence in the user's words", "who": "which users hit it, or 'unclear'", "trigger": "moment in the journey", "root_cause_hypothesis": "best guess, as a hypothesis", "severity": 1-5, "share_of_quotes": percent integer, "evidence": ["2-3 short verbatim quotes"], "opportunity": "How might we ...?"}]}`;
+function painBlock(r) {
+  return `<p>${esc(r.summary)}</p>` + (r.pain_points || []).map(p => `<div class="pp"><b>${esc(p.problem)}</b>
+    <div class="meta">${sevDots(+p.severity || 0)} Severity ${esc(p.severity)}/5 · about ${esc(p.share_of_quotes)}% of comments · Who: ${esc(p.who)} · When: ${esc(p.trigger)}</div>
+    <div style="font-size:14px;margin-top:4px">Likely cause (hypothesis): ${esc(p.root_cause_hypothesis)}</div>
+    <div style="font-size:14px;margin-top:4px"><b>${esc(p.opportunity)}</b></div>
+    ${(p.evidence || []).slice(0, 2).map(q => `<blockquote>${esc(q)}</blockquote>`).join("")}</div>`).join("");
+}
+
+/* ============================================================ BRANDS (home) */
+async function home() {
+  nav("brands");
+  const sectors = Object.keys(TAX.sectors);
+  const canSave = !!(S.db && S.assets);
+  const dsState = {loading: `<span class="spinner"></span>Loading saved brands…`, slow: "Saved brands can't be reached yet. Showing what's available.",
+    error: "Saved brands couldn't be loaded.", none: "Sign in to claude.ai to see brands saved by your team.", ok: ""}[S.dbState];
+  $("#app").innerHTML = `
+  <h1>Which brand should we listen to?</h1>
+  <p class="sub">Two ways in. <b>Quick read</b>: name any brand and Claude sketches its likely pain points from what it already knows. <b>Real data</b>: upload reviews and get measured sentiment, an opportunity ranking and a deep dive into any topic.</p>
+  <div class="card">
+    <h3>Quick read (any brand)</h3>
+    <form id="qf" class="row"><input class="big" type="text" id="qbrand" placeholder="e.g. Nykaa, Flipkart, Swiggy, Google Pay…" autocomplete="off" required value="${esc(state.quickBrand)}">
+      <button class="primary" type="submit" style="padding:12px 18px" ${S.sample ? "" : "disabled"}>Get quick read</button></form>
+    <div class="chips" style="margin-top:10px">${["Nykaa","Flipkart","Amazon India","Myntra","Swiggy","Zomato","Blinkit","Zepto","Meesho","Paytm","PhonePe","Google"].map(n => `<span class="chip" data-q="${n}">${n}</span>`).join("")}</div>
+    <p class="meta" style="margin-top:10px">${S.sample ? "Uses Claude's general knowledge, not live reviews. Good for framing hypotheses before you collect data." : "Quick reads need this page to be open on claude.ai while signed in."}</p>
+  </div>
+
+  <h2>Brands with real data</h2>
+  <p class="sub">Open one to see its overview and topic deep dives.${dsState ? ` <span class="muted">${dsState}</span>` : ""}</p>
+  <div class="dsgrid">${allDatasets().map(d => `<div class="card ds" data-ds="${esc(d.id)}" tabindex="0" role="button">
+      <h3 style="margin:0">${esc(d.name)}</h3>
+      <div class="meta">${d.example ? "Made-up reviews to show how the tool works" : `${(d.n || d.rows?.length || 0).toLocaleString()} items · ${esc(d.sector || "general")}${d.uploadedAt ? " · " + esc(String(d.uploadedAt).slice(0, 10)) : ""}`}</div>
+      <div>${d.example ? `<span class="pill">example</span>` : S.local[d.id] ? `<span class="pill">this session only</span>` : `<span class="pill">saved</span>`}</div></div>`).join("")}</div>
+
+  <h2>Add a brand's reviews</h2>
+  <p class="sub">Upload a CSV or JSON of reviews: Play Store or App Store exports, Trustpilot, X posts, support tickets, survey answers. You need a text column; date, rating, source, likes and version are used when present. The <code>feedback_tagged.csv</code> from the Python version of this tool works directly.</p>
+  <div class="card"><form id="uf">
+    <div class="grid3">
+      <label class="field">Brand name<input type="text" id="ub" required placeholder="e.g. Nykaa"></label>
+      <label class="field">Competitors (comma separated)<input type="text" id="uc" placeholder="Purplle, Myntra"></label>
+      <label class="field">Review files (.csv or .json)<input type="file" id="uff" accept=".csv,.json,text/csv,application/json" multiple required></label>
+    </div>
+    <div class="field" style="margin-top:10px">Industry packs (add sector-specific topics)</div>
+    <div style="margin:4px 0 10px">${sectors.map(s => `<label class="ck"><input type="checkbox" name="sec" value="${s}">${s.replace("_", " ")}</label>`).join("")}</div>
+    <div class="row"><button class="primary" type="submit">Analyse</button>
+      <span class="meta">${canSave ? "Saved so everyone with this link can open it." : "Analysed in your browser for this session. Saving for others needs edit access on claude.ai."}</span></div>
+    <p id="umsg" class="meta" aria-live="polite"></p>
+  </form></div>
+  <details style="margin-top:16px"><summary>How do I get review files?</summary><div class="card" style="font-size:14px">
+    <p style="margin-top:0"><b>Fastest:</b> run the Python version of this tool on your laptop (<code>python -m radar analyze "Nykaa"</code>). It downloads Play Store, App Store, Reddit and Hacker News feedback automatically. Upload the <code>out/nykaa/feedback_tagged.csv</code> it writes.</p>
+    <p><b>By hand:</b> export or copy reviews from Trustpilot, MouthShut, X, YouTube comments, consumer complaint portals, or your own support tool into a spreadsheet with a <code>text</code> column, then save as CSV.</p>
+    <p style="margin-bottom:0">This page can't download reviews itself: pages hosted on claude.ai aren't allowed to fetch other websites.</p></div></details>`;
+
+  $("#app").querySelectorAll("[data-ds]").forEach(el => { el.onclick = () => openDataset(el.dataset.ds); el.onkeydown = e => { if (e.key === "Enter") openDataset(el.dataset.ds); }; });
+  $("#app").querySelectorAll("[data-q]").forEach(el => el.onclick = () => { $("#qbrand").value = el.dataset.q; });
+  $("#qf").onsubmit = e => { e.preventDefault(); state.quickBrand = $("#qbrand").value.trim(); state.quickResult = null; location.hash = "quick"; };
+  $("#uf").onsubmit = async e => {
+    e.preventDefault();
+    const msg = $("#umsg"), btn = e.target.querySelector("button[type=submit]");
+    const name = $("#ub").value.trim(), sector = [...document.querySelectorAll("[name=sec]:checked")].map(c => c.value).join(",");
+    btn.disabled = true; msg.innerHTML = `<span class="spinner"></span>Reading files…`;
+    try {
+      let rows = [];
+      for (const f of $("#uff").files) {
+        const txt = await f.text(), srcName = f.name.replace(/\.[^.]+$/, "");
+        let recs;
+        if (/\.json$/i.test(f.name)) { const j = JSON.parse(txt); recs = Array.isArray(j) ? j : (j.rows || j.items || []); }
+        else recs = Papa.parse(txt, {header: true, skipEmptyLines: true}).data;
+        rows.push(...normalizeRows(recs, srcName));
+      }
+      if (rows.length < 20) throw new Error(`Only ${rows.length} usable rows found. Check that the file has a text column with the reviews.`);
+      const meta = {name, sector, competitors: $("#uc").value.trim(), n: rows.length, uploadedAt: new Date().toISOString()};
+      if (canSave) {
+        msg.innerHTML = `<span class="spinner"></span>Saving ${rows.length.toLocaleString()} rows…`;
+        const blob = new Blob([JSON.stringify({rows})], {type: "application/json"});
+        const up = await S.assets.upload(blob, {type: "application/json"});
+        const ref = await S.db.collection("datasets").add({...meta, assetId: up.id});
+        S.cache[ref.id] = null;
+        S.datasets = [{id: ref.id, ...meta, assetId: up.id}, ...S.datasets.filter(d => d.id !== ref.id)];
+        openDataset(ref.id);
+      } else {
+        const id = "local-" + slugify(name) + "-" + Date.now();
+        S.local[id] = {id, ...meta, rows}; openDataset(id);
+      }
+    } catch (err) { msg.innerHTML = `<span class="err">${esc(err.message || err.code || err)}</span>`; btn.disabled = false; }
+  };
+}
+
+/* ============================================================ QUICK READ */
+async function quickView() {
+  nav("quick");
+  const brand = state.quickBrand;
+  if (!brand) { location.hash = "brands"; return; }
+  $("#app").innerHTML = `<h1>${esc(brand)}: quick read</h1>
+    <div class="banner"><b>Hypotheses, not data.</b> This comes from Claude's general knowledge of what users publicly say about ${esc(brand)}, not from live reviews. Use it to decide what to look into, then check it against real feedback.</div>
+    <div id="qr" style="margin-top:12px"><div class="card"><span class="spinner"></span>Claude is thinking about ${esc(brand)}'s users… this usually takes 20–60 seconds.</div></div>`;
+  if (!S.sample) { $("#qr").innerHTML = `<div class="card err">Quick reads need this page open on claude.ai while signed in.</div>`; return; }
+  if (state.quickResult?.brand === brand) return renderQuick(state.quickResult.data);
+  const prompt = `You are a senior product researcher. Using only your general knowledge of publicly reported customer feedback (app store reviews, forums, social media, complaint portals, news), describe the main user pain points for the company or product "${brand}". If the market is unclear, assume India.
+Be specific to this company; avoid generic e-commerce filler. If you don't know the company well, say so in "caveat" and keep confidence low.
+
+Reply with only JSON in this shape:
+{"what_it_is": "one sentence", "caveat": "one sentence on how reliable this is", "areas": [{"area": "short name, e.g. Refunds & returns", "typical_complaints": ["3 concrete complaints as users phrase them"], "who": "which users feel it most", "severity": 1-5, "confidence": "low|medium|high", "verify": "a specific search query or place to check this"}], "underserved_segments": ["2-3 user groups whose needs seem poorly met"], "opportunities": ["3 'How might we ...?' questions a PM could take into discovery"], "where_to_listen": [{"source": "e.g. r/IndianSkincareAddicts", "why": "short reason"}]}
+List 6-8 areas, most painful first.`;
+  try {
+    const data = await S.sample.json(prompt, {modelTier: "default"});
+    state.quickResult = {brand, data}; if (location.hash === "#quick") renderQuick(data);
+  } catch (e) { $("#qr").innerHTML = `<div class="card"><p class="err">${esc(claudeError(e))}</p><button id="qretry">Try again</button></div>`; $("#qretry").onclick = () => { state.quickResult = null; quickView(); }; }
+}
+function renderQuick(d) {
+  $("#qr").innerHTML = `<p class="sub">${esc(d.what_it_is)} <span class="muted">${esc(d.caveat)}</span></p>
+  <div class="card scroll"><table><thead><tr><th>Area</th><th>What users complain about</th><th>Severity</th><th class="hide-sm">Confidence</th></tr></thead><tbody>
+  ${(d.areas || []).map(a => `<tr><td style="vertical-align:top"><b>${esc(a.area)}</b><div class="meta">${esc(a.who)}</div></td>
+    <td style="vertical-align:top">${(a.typical_complaints || []).map(c => `<div>“${esc(c)}”</div>`).join("")}<div class="meta" style="margin-top:4px">Check: ${esc(a.verify)}</div></td>
+    <td style="vertical-align:top;white-space:nowrap">${sevDots(+a.severity || 0)} ${esc(a.severity)}/5</td><td class="hide-sm" style="vertical-align:top"><span class="pill">${esc(a.confidence)}</span></td></tr>`).join("")}
+  </tbody></table></div>
+  <div class="grid3">
+    <div><h2>Opportunities to explore</h2><div class="card">${(d.opportunities || []).map(o => `<p style="margin:6px 0">${esc(o)}</p>`).join("")}</div></div>
+    <div><h2>Underserved users</h2><div class="card">${(d.underserved_segments || []).map(o => `<p style="margin:6px 0">${esc(o)}</p>`).join("")}</div></div>
+    <div><h2>Where to listen</h2><div class="card">${(d.where_to_listen || []).map(o => `<p style="margin:6px 0"><b>${esc(o.source)}</b><br><span class="meta">${esc(o.why)}</span></p>`).join("")}</div></div>
+  </div>
+  <div class="card" style="margin-top:16px"><b>Next step:</b> collect real reviews for this brand and upload them on the <a href="#brands">Brands</a> page to measure which of these actually matter most.</div>`;
+}
+
+/* ============================================================ OVERVIEW */
+async function overview() {
+  nav("overview");
+  $("#app").innerHTML = `<div class="empty"><span class="spinner"></span>Analysing…</div>`;
+  const D = await loadDataset(S.cur), s = D.summary; nav("overview");
+  const neutral = r1(Math.max(0, 100 - s.pct_negative - s.pct_positive));
+  $("#app").innerHTML = `
+  ${D.ds.example ? `<div class="banner"><b>Example data.</b> These reviews are made up to show how the tool works. Upload real reviews on the Brands page.</div>` : ""}
+  <h1 style="margin-top:12px">${esc(s.company)}</h1>
+  <p class="sub">${s.n.toLocaleString()} reviews and posts · ${esc(s.date_range[0] || "?")} to ${esc(s.date_range[1] || "?")}</p>
+  <div class="tiles">
+    <div class="tile"><b>${s.n.toLocaleString()}</b><span>pieces of feedback</span></div>
+    <div class="tile"><b>${stars(s.avg_rating)}</b><span>average rating</span></div>
+    <div class="tile"><b>${pct(s.pct_negative)}</b><span>negative</span></div>
+    <div class="tile"><b>${signed(s.net)}</b><span>net sentiment (pos − neg)</span></div>
+    <div class="tile"><b>${s.churn_signals.toLocaleString()}</b><span>leaving or switching mentions</span></div>
+  </div>
+  <div class="card"><div class="split" data-tip="${s.pct_negative}% negative · ${neutral}% neutral · ${s.pct_positive}% positive">
+    <i style="width:${s.pct_negative}%;background:var(--red)"></i><i style="width:${neutral}%;background:var(--mid)"></i><i style="width:${s.pct_positive}%;background:var(--blue)"></i></div>
+    <div class="legend"><span><i style="background:var(--red)"></i>Negative ${s.pct_negative}%</span><span><i style="background:var(--mid)"></i>Neutral ${neutral}%</span><span><i style="background:var(--blue)"></i>Positive ${s.pct_positive}%</span></div></div>
+  <h2>Key findings</h2>
+  <div class="card"><ul style="margin:0;padding-left:20px">${s.insights.map(x => `<li style="margin:6px 0">${x}</li>`).join("") || "<li class='muted'>Not enough data for findings.</li>"}</ul></div>
+  <h2>Where to go after</h2>
+  <p class="sub">Opportunity = share of complaints × severity × momentum × reach (top = 100). <b>Click a topic to deep-dive into it.</b></p>
+  <div class="card scroll"><table><thead><tr><th>Topic</th><th colspan="2">Opportunity</th><th class="num">% of complaints</th><th class="num hide-sm">Negative</th><th class="num hide-sm">Momentum</th><th class="num hide-sm">Rating drag</th></tr></thead><tbody>
+    ${s.areas.map(a => `<tr class="click" data-topic="${esc(a.area)}" tabindex="0"><td><b>${esc(a.area)}</b></td>
+      <td style="width:24%"><div class="bar" data-tip="Opportunity ${a.opportunity}/100"><i style="width:${a.opportunity}%"></i></div></td><td class="num">${a.opportunity}</td>
+      <td class="num">${a.pct_of_all_complaints}%</td><td class="num hide-sm">${a.negative_rate}%</td><td class="num hide-sm">${mom(a.momentum)}</td>
+      <td class="num hide-sm">${a.rating_drag == null ? "–" : signed(a.rating_drag) + "★"}</td></tr>`).join("")}</tbody></table></div>
+  <div class="grid2">
+    <div><h2>Negative share by month</h2><div class="card">${lineChart(s.timeline, "neg_rate", "% negative")}</div></div>
+    <div><h2>Emerging themes</h2><p class="sub">Phrases far more common in complaints than in praise. Click one to read them.</p>
+      <div class="card chips">${s.emerging.map(p => `<span class="chip" data-phrase="${esc(p.phrase)}" tabindex="0">${esc(p.phrase)}<em>${p.a}</em></span>`).join("") || "<span class='meta'>Not enough data.</span>"}</div></div>
+  </div>
+  <div class="grid2">
+    <div><h2>Unmet needs</h2><div class="card">${s.feature_requests.slice(0, 5).map(q => fbItem(q, [], "request")).join("") || "<span class='meta'>None detected.</span>"}</div></div>
+    <div><h2>Why people leave</h2><div class="card">${s.churn_quotes.slice(0, 5).map(q => fbItem(q)).join("") || "<span class='meta'>None detected.</span>"}</div></div>
+  </div>
+  ${s.competitors.length ? `<h2>Competitors mentioned</h2><div class="card scroll"><table><thead><tr><th>Competitor</th><th class="num">Mentions</th><th class="num">With switching language</th></tr></thead><tbody>
+    ${s.competitors.map(c => `<tr class="click" data-phrase="${esc(c.competitor)}"><td>${esc(c.competitor)}</td><td class="num">${c.mentions}</td><td class="num">${c.in_churn_context}</td></tr>`).join("")}</tbody></table></div>` : ""}
+  <div class="grid2">
+    <div><h2>By source</h2><div class="card scroll"><table><thead><tr><th>Source</th><th class="num">Items</th><th class="num">Negative</th><th class="num">Avg ★</th></tr></thead><tbody>
+      ${s.sources.map(x => `<tr><td>${esc(x.source)}</td><td class="num">${x.n.toLocaleString()}</td><td class="num">${x.neg_rate}%</td><td class="num">${stars(x.avg_rating)}</td></tr>`).join("")}</tbody></table></div></div>
+    <div><h2>By app version</h2><div class="card scroll">${s.versions.length ? `<table><thead><tr><th>Version</th><th class="num">Items</th><th class="num">Negative</th></tr></thead><tbody>
+      ${s.versions.map(v => `<tr><td>${esc(v.version)}</td><td class="num">${v.n}</td><td class="num">${v.neg_rate}%</td></tr>`).join("")}</tbody></table>` : `<span class="meta">No version data in these reviews.</span>`}</div></div>
+  </div>`;
+  $("#app").querySelectorAll("[data-topic]").forEach(r => { const go = () => { state.topicDef = {topic: r.dataset.topic}; state.filter = {}; location.hash = "topic"; }; r.onclick = go; r.onkeydown = e => e.key === "Enter" && go(); });
+  $("#app").querySelectorAll("[data-phrase]").forEach(r => r.onclick = () => { state.explorePhrase = r.dataset.phrase; location.hash = "feedback"; });
+}
+
+/* ============================================================ TOPIC DEEP DIVE */
+async function topicView() {
+  nav("topic");
+  const D = await loadDataset(S.cur), s = D.summary; nav("topic");
+  const areaNames = s.areas.map(a => a.area);
+  let def = state.topicDef;
+  if (def?.custom) { const t = S.topics.find(x => x.id === def.id); def = t ? {topic: t.name, keywords: t.keywords, subthemes: t.subthemes, custom: true, id: t.id} : null; }
+  if (!def || (!def.custom && !areaNames.includes(def.topic))) def = {topic: areaNames[0]};
+  state.topicDef = def;
+  const editing = def.custom ? S.topics.find(t => t.id === def.id) : null;
+  $("#app").innerHTML = `
+  ${D.ds.example ? `<div class="banner"><b>Example data.</b> These reviews are made up to show how the tool works.</div>` : ""}
+  <h1 style="margin-top:12px">Topic deep dive</h1>
+  <p class="sub">Pick a topic to see what ${esc(s.company)} users actually say about it, or define your own with keywords.</p>
+  <div class="card">
+    <div class="chips">${areaNames.map(a => `<span class="chip ${!def.custom && a === def.topic ? "on" : ""}" data-t="${esc(a)}" tabindex="0">${esc(a)}</span>`).join("")}</div>
+    ${S.topics.length ? `<div class="meta" style="margin:12px 0 6px">Your topics${S.db ? " (shared with everyone on this page)" : ""}</div><div class="chips">${S.topics.map(t => `<span class="chip ${def.custom && t.id === def.id ? "on" : ""}" data-ct="${esc(t.id)}" tabindex="0">★ ${esc(t.name)}</span>`).join("")}</div>` : ""}
+    <details style="margin-top:12px" ${editing ? "open" : ""}><summary>${editing ? "Edit this topic" : "+ Define your own topic"}</summary>
+      <form id="ct" style="margin-top:10px" class="grid2">
+        <label class="field">Topic name<input type="text" id="ctn" required placeholder="e.g. Payment experience" value="${esc(editing?.name || "")}"></label>
+        <label class="field">Keywords that mean this topic (comma separated)<input type="text" id="ctk" required placeholder="payment, upi, checkout, cod, card" value="${esc((editing?.keywords || []).join(", "))}"></label>
+        <label class="field" style="grid-column:1/-1">Optional sub-themes, one per line, as <i>Name: keyword, keyword</i>
+          <textarea id="cts" rows="3" placeholder="UPI failures: upi, gpay, phonepe&#10;Cash on delivery: cod, cash on delivery">${esc(Object.entries(editing?.subthemes || {}).map(([k, v]) => `${k}: ${v.join(", ")}`).join("\n"))}</textarea></label>
+        <div class="row"><button class="primary" type="submit">Save and analyse</button>${editing ? `<button type="button" id="ctdel">Delete topic</button>` : ""}
+          <span class="meta">Saved topics work for every brand.</span></div>
+      </form></details>
+  </div>
+  <div id="td"></div>`;
+  $("#app").querySelectorAll("[data-t]").forEach(c => c.onclick = () => { state.topicDef = {topic: c.dataset.t}; state.filter = {}; topicView(); });
+  $("#app").querySelectorAll("[data-ct]").forEach(c => c.onclick = () => { state.topicDef = {custom: true, id: c.dataset.ct}; state.filter = {}; topicView(); });
+  $("#ct").onsubmit = async e => {
+    e.preventDefault();
+    const name = $("#ctn").value.trim(), keywords = $("#ctk").value.split(",").map(x => x.trim()).filter(Boolean), subthemes = {};
+    $("#cts").value.split("\n").forEach(l => { const i = l.indexOf(":"); if (i > 0) { const v = l.slice(i + 1).split(",").map(x => x.trim()).filter(Boolean); if (v.length) subthemes[l.slice(0, i).trim()] = v; } });
+    try { await saveTopic({name, keywords, subthemes}); } catch (err) { alertInline(err); return; }
+    const id = slugify(name); if (!S.topics.find(t => t.id === id)) S.topics.push({id, name, keywords, subthemes});
+    else Object.assign(S.topics.find(t => t.id === id), {name, keywords, subthemes});
+    state.topicDef = {custom: true, id}; state.filter = {}; topicView();
+  };
+  if ($("#ctdel")) $("#ctdel").onclick = async () => { try { await deleteTopic(editing.id); } catch (err) { alertInline(err); return; } S.topics = S.topics.filter(t => t.id !== editing.id); state.topicDef = null; topicView(); };
+  renderTopic(D);
+}
+function alertInline(err) { const p = document.createElement("p"); p.className = "err"; p.textContent = err?.code === "permission_denied" ? "You don't have permission to change shared topics here." : (err?.message || "That didn't save."); $("#ct").append(p); }
+function renderTopic(D) {
+  const def = state.topicDef, d = topicDive(D, def), td = $("#td"), F = state.filter;
+  if (!d.mentions) { td.innerHTML = `<div class="card empty">No feedback mentions this topic. Try broader keywords.</div>`; return; }
+  const maxSub = Math.max(...d.subthemes.map(x => x.pct_of_topic), 1), maxPh = Math.max(...d.phrases.map(x => x.mentions), 1);
+  td.innerHTML = `
+  <h2>${esc(d.topic)}</h2>${d.custom ? `<p class="sub">Matches: ${d.keywords.map(esc).join(", ")}</p>` : ""}
+  <div class="tiles">
+    <div class="tile"><b>${d.mentions.toLocaleString()}</b><span>mentions</span><small>${d.pct_of_all_feedback}% of all feedback</small></div>
+    <div class="tile"><b>${pct(d.pct_of_all_complaints)}</b><span>of all complaints</span></div>
+    <div class="tile"><b>${pct(d.pct_negative)}</b><span>negative</span><small>brand overall: ${d.brand_pct_negative}%</small></div>
+    <div class="tile"><b>${d.rating_drag == null ? "–" : signed(d.rating_drag) + "★"}</b><span>rating vs brand average</span><small>${stars(d.avg_rating)} when mentioned</small></div>
+    <div class="tile"><b>${mom(d.momentum)}</b><span>momentum, last 30 days</span></div>
+    <div class="tile"><b>${d.churn_mentions}</b><span>complaints with leaving language</span></div>
+  </div>
+  <h2>What users talk about within ${esc(d.topic)}</h2>
+  <p class="sub">Feedback can fall into several sub-themes. Click a sub-theme or phrase to read that feedback below.${d.unclassified_pct != null ? ` ${d.unclassified_pct}% fits none of the sub-themes; the phrases cover the rest.` : ""}</p>
+  <div class="grid2">
+    <div class="card"><h3>Sub-themes</h3>${d.subthemes.length ? `<div class="hlist">${d.subthemes.map(x => `
+      <div class="item ${F.subtheme === x.name ? "on" : ""}" data-sub="${esc(x.name)}" tabindex="0" data-tip="${x.mentions} mentions · ${x.pct_negative}% negative · ${stars(x.avg_rating)} · momentum ${x.momentum}×">
+      <span>${esc(x.name)}</span><div class="bar"><i style="width:${100 * x.pct_of_topic / maxSub}%"></i></div><span class="n">${x.pct_of_topic}%</span><span class="m">${x.pct_negative}% neg</span></div>`).join("")}</div>`
+      : `<p class="meta">No sub-themes are defined for this topic. Use the phrases on the right, or add sub-themes to a topic of your own.</p>`}</div>
+    <div class="card"><h3>Most talked-about phrases</h3><div class="hlist">${d.phrases.slice(0, 14).map(x => `
+      <div class="item ${F.phrase === x.phrase ? "on" : ""}" data-ph="${esc(x.phrase)}" tabindex="0" data-tip="${x.mentions} people · ${x.pct_negative}% negative">
+      <span>“${esc(x.phrase)}”</span><div class="bar"><i style="width:${100 * x.mentions / maxPh}%"></i></div><span class="n">${x.mentions}</span><span class="m">${x.pct_negative}% neg</span></div>`).join("") || "<p class='meta'>Not enough text.</p>"}</div></div>
+  </div>
+  <div class="grid2">
+    <div><h2>What makes it bad</h2><p class="sub">Words far more common in negative than positive feedback on this topic.</p>
+      <div class="card chips">${d.pain.map(x => `<span class="chip" data-ph="${esc(x.phrase)}" tabindex="0">${esc(x.phrase)}<em>${x.a}</em></span>`).join("") || "<span class='meta'>Not enough contrast between happy and unhappy users.</span>"}</div></div>
+    <div><h2>What users like</h2><p class="sub">Words far more common in positive feedback. This is what good looks like.</p>
+      <div class="card chips">${d.delight.map(x => `<span class="chip" data-ph="${esc(x.phrase)}" tabindex="0">${esc(x.phrase)}<em>${x.b}</em></span>`).join("") || "<span class='meta'>Not enough positive feedback.</span>"}</div></div>
+  </div>
+  <div class="grid2">
+    <div><h2>Mentioned alongside</h2><p class="sub">Other topics in the same feedback. Often the root cause.</p>
+      <div class="card hlist">${d.co_mentions.map(x => `<div class="item" data-goto="${esc(x.area)}" tabindex="0"><span>${esc(x.area)}</span><div class="bar"><i style="width:${x.pct_of_topic}%"></i></div><span class="n">${x.pct_of_topic}%</span><span class="m"></span></div>`).join("") || "<p class='meta'>None.</p>"}</div></div>
+    <div><h2>Trend</h2><p class="sub">Share of all feedback that mentions this topic, by month.</p><div class="card">${lineChart(d.timeline, "share", "share of feedback")}</div></div>
+  </div>
+  <h2>Read the feedback</h2>
+  <div class="card">
+    ${S.sample ? `<div class="row" style="margin-bottom:10px"><button id="ask">Ask Claude to find the pain points in this selection</button><span class="meta">Sends up to 60 of the matching negative comments to Claude.</span></div><div id="claude"></div>` : ""}
+    <div id="fbpanel"></div>
+  </div>`;
+  const rerender = () => { renderTopic(D); $("#fbpanel").scrollIntoView({behavior: matchMedia("(prefers-reduced-motion: reduce)").matches ? "auto" : "smooth", block: "start"}); };
+  td.querySelectorAll("[data-sub]").forEach(el => { const go = () => { state.filter = F.subtheme === el.dataset.sub ? {} : {subtheme: el.dataset.sub}; rerender(); }; el.onclick = go; el.onkeydown = e => e.key === "Enter" && go(); });
+  td.querySelectorAll("[data-ph]").forEach(el => { const go = () => { state.filter = F.phrase === el.dataset.ph ? {} : {phrase: el.dataset.ph}; rerender(); }; el.onclick = go; el.onkeydown = e => e.key === "Enter" && go(); });
+  td.querySelectorAll("[data-goto]").forEach(el => el.onclick = () => { state.topicDef = {topic: el.dataset.goto}; state.filter = {}; topicView(); });
+  if ($("#ask")) $("#ask").onclick = async () => {
+    const neg = filterFeedback(D, {...def, ...F, sentiment: "negative", sort: "helpful"}).slice(0, 60);
+    if (neg.length < 5) { $("#claude").innerHTML = `<p class="meta">Claude needs at least 5 negative comments in this selection.</p>`; return; }
+    $("#ask").disabled = true; $("#claude").innerHTML = `<p class="meta"><span class="spinner"></span>Claude is reading ${neg.length} comments… (20–60 seconds)</p>`;
+    const label = d.topic + (F.subtheme ? " / " + F.subtheme : F.phrase ? ` / "${F.phrase}"` : "");
+    const prompt = `You are helping a product manager find problems worth solving at ${D.ds.name}. Below are ${neg.length} negative user comments about "${label}". Some may be off-topic; ignore those.
+Group them into 2-5 distinct, specific pain points. Use only what the comments say; do not invent facts. Mark the root cause as a hypothesis.
+Reply with only JSON in this shape: ${PAIN_SCHEMA}
+
+Comments:
+${neg.map(x => "- " + x.text.slice(0, 500)).join("\n")}`;
+    try { $("#claude").innerHTML = `<div class="card" style="margin:0 0 12px">${painBlock(await S.sample.json(prompt))}</div>`; }
+    catch (e) { $("#claude").innerHTML = `<p class="err">${esc(claudeError(e))}</p>`; }
+    $("#ask").disabled = false;
+  };
+  feedbackPanel(D, {...def, ...F}, () => { state.filter = {}; renderTopic(D); });
+}
+
+/* ============================================================ feedback list */
+function feedbackPanel(D, base, clear) {
+  const F = {sentiment: "", source: "", sort: "helpful", q: "", shown: 25};
+  const sources = [...new Set(D.items.map(x => x.source))].sort();
+  const active = [base.subtheme && `Sub-theme: ${base.subtheme}`, base.phrase && `Phrase: “${base.phrase}”`].filter(Boolean);
+  $("#fbpanel").innerHTML = `<div class="row">
+    ${active.map(a => `<span class="chip on clr" tabindex="0" data-tip="Clear this filter">${esc(a)} ✕</span>`).join("")}
+    <input type="text" id="fq" placeholder="Search within…" aria-label="Search feedback" style="flex:1 1 160px">
+    <select id="fs" aria-label="Sentiment"><option value="">All sentiment</option><option value="negative">Negative</option><option value="neutral">Neutral</option><option value="positive">Positive</option></select>
+    <select id="fsrc" aria-label="Source"><option value="">All sources</option>${sources.map(s => `<option>${esc(s)}</option>`).join("")}</select>
+    <select id="fsort" aria-label="Sort"><option value="helpful">Most agreed with</option><option value="recent">Most recent</option><option value="negative">Most negative</option><option value="positive">Most positive</option></select>
+    <span class="meta" id="fcount"></span></div><div id="fblist" style="margin-top:8px"></div>
+    <div class="row" style="justify-content:center;margin-top:8px"><button id="more" hidden>Show more</button></div>`;
+  $("#fbpanel").querySelectorAll(".clr").forEach(c => c.onclick = clear);
+  const draw = () => {
+    const all = filterFeedback(D, {...base, sentiment: F.sentiment, source: F.source, sort: F.sort, q: F.q});
+    $("#fcount").textContent = `${all.length.toLocaleString()} matching`;
+    $("#fblist").innerHTML = all.slice(0, F.shown).map(i => fbItem(i, [base.phrase, F.q])).join("") || `<div class="empty">No matching feedback.</div>`;
+    $("#more").hidden = F.shown >= all.length;
+  };
+  let t; $("#fq").oninput = e => { clearTimeout(t); t = setTimeout(() => { F.q = e.target.value.trim(); F.shown = 25; draw(); }, 250); };
+  $("#fs").onchange = e => { F.sentiment = e.target.value; F.shown = 25; draw(); };
+  $("#fsrc").onchange = e => { F.source = e.target.value; F.shown = 25; draw(); };
+  $("#fsort").onchange = e => { F.sort = e.target.value; draw(); };
+  $("#more").onclick = () => { F.shown += 25; draw(); };
+  draw();
+}
+
+/* ============================================================ ALL FEEDBACK */
+async function feedbackView() {
+  nav("feedback");
+  const D = await loadDataset(S.cur); nav("feedback");
+  const phrase = state.explorePhrase; state.explorePhrase = null;
+  $("#app").innerHTML = `<h1>All feedback: ${esc(D.ds.name)}</h1><p class="sub">Search and filter everything in this dataset.</p>
+    <div class="card"><div class="row" style="margin-bottom:8px"><select id="ftopic" aria-label="Topic"><option value="">All topics</option>${D.summary.areas.map(a => `<option>${esc(a.area)}</option>`).join("")}</select></div><div id="fbpanel"></div></div>`;
+  const go = (topic, ph) => feedbackPanel(D, {topic: topic || null, phrase: ph || null}, () => go($("#ftopic").value, null));
+  $("#ftopic").onchange = e => go(e.target.value, null);
+  go(null, phrase);
+}
+
+/* ============================================================ COMPARE */
+async function compareView() {
+  nav("compare");
+  const list = allDatasets();
+  const picked = new Set(store.get("radar.cmp") || list.map(d => d.id));
+  $("#app").innerHTML = `<h1>Compare brands</h1><p class="sub">Where is each brand weak? Each cell is the share of that brand's complaints that mention the topic. Click a cell to deep-dive.</p>
+    <div class="card">${list.map(d => `<label class="ck"><input type="checkbox" value="${esc(d.id)}" ${picked.has(d.id) ? "checked" : ""}>${esc(d.name)}</label>`).join("")}
+    ${list.length < 2 ? `<p class="meta">Add at least one more brand on the Brands page to compare.</p>` : ""}</div><div id="cmp"></div>`;
+  const draw = async () => {
+    const ids = [...$("#app").querySelectorAll("input:checked")].map(c => c.value); store.set("radar.cmp", ids);
+    if (ids.length < 1) { $("#cmp").innerHTML = ""; return; }
+    $("#cmp").innerHTML = `<div class="empty"><span class="spinner"></span>Loading…</div>`;
+    const Ds = await Promise.all(ids.map(loadDataset)), sums = Ds.map(d => d.summary);
+    const by = sums.map(s => Object.fromEntries(s.areas.map(a => [a.area, a])));
+    const areas = [...new Set(sums.flatMap(s => s.areas.map(a => a.area)))].sort((a, b) => Math.max(...by.map(x => x[b]?.pct_of_all_complaints || 0)) - Math.max(...by.map(x => x[a]?.pct_of_all_complaints || 0)));
+    $("#cmp").innerHTML = `<div class="card scroll"><table><thead><tr><th>Brand</th><th class="num">Items</th><th class="num">Avg ★</th><th class="num">Negative</th><th class="num">Net</th></tr></thead><tbody>
+      ${sums.map((s, i) => `<tr class="click" data-open="${esc(ids[i])}"><td><b>${esc(s.company)}</b></td><td class="num">${s.n.toLocaleString()}</td><td class="num">${stars(s.avg_rating)}</td><td class="num">${s.pct_negative}%</td><td class="num">${signed(s.net)}</td></tr>`).join("")}</tbody></table></div>
+      <h2>Complaint mix by topic</h2><div class="card scroll"><table><thead><tr><th>Topic</th>${sums.map(s => `<th class="num">${esc(s.company)}</th>`).join("")}</tr></thead><tbody>
+      ${areas.map(a => `<tr><td>${esc(a)}</td>${by.map((b, i) => { const v = b[a]?.pct_of_all_complaints; return v == null ? `<td class="num muted">–</td>` :
+        `<td class="num" style="cursor:pointer;background:color-mix(in srgb,var(--red) ${Math.round(Math.min(1, v / 40) * 40)}%,transparent)" data-go="${esc(ids[i])}" data-area="${esc(a)}" data-tip="${v}% of complaints · opportunity ${b[a].opportunity}">${v}%</td>`; }).join("")}</tr>`).join("")}</tbody></table></div>`;
+    $("#cmp").querySelectorAll("[data-go]").forEach(c => c.onclick = () => { state.topicDef = {topic: c.dataset.area}; state.filter = {}; openDataset(c.dataset.go, "topic"); });
+    $("#cmp").querySelectorAll("[data-open]").forEach(c => c.onclick = () => openDataset(c.dataset.open));
+  };
+  $("#app").querySelectorAll("input[type=checkbox]").forEach(c => c.onchange = draw);
+  draw();
+}
+
+/* ============================================================ boot */
+(async () => {
+  try { TAX = await (await fetch("taxonomy.json")).json(); }
+  catch { $("#app").innerHTML = `<div class="card err">Couldn't load the topic definitions. Reload the page.</div>`; return; }
+  if (!allDatasets().some(d => d.id === S.cur)) S.cur = "example";
+  S.topics = store.get("radar.topics") || [];
+  route();
+  initCapabilities();
+})();
+</script>
